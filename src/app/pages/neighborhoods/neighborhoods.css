@@ -1,0 +1,6 @@
+.table td, .table th {
+  vertical-align: middle;
+}
+.modal-header {
+  background-color: #0d6efd;
+}

@@ -1,0 +1,22 @@
+<div class="container mt-5" style="max-width:420px">
+  <div class="card shadow">
+    <div class="card-header text-center bg-primary text-white">
+      <h5 class="m-0">Iniciar sesión</h5>
+    </div>
+    <div class="card-body">
+      <form (ngSubmit)="onLogin()">
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input class="form-control" type="email" [(ngModel)]="email" name="email" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Contraseña</label>
+          <input class="form-control" type="password" [(ngModel)]="password" name="password" required>
+        </div>
+        <button class="btn btn-primary w-100" [disabled]="loading">
+          {{ loading ? 'Ingresando...' : 'Ingresar' }}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>

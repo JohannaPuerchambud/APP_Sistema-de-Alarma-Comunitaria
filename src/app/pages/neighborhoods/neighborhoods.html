@@ -1,0 +1,68 @@
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="m-0">Gestión de Barrios</h4>
+    <button class="btn btn-primary" (click)="openModal('add')">
+      <i class="bi bi-plus-lg"></i> Nuevo Barrio
+    </button>
+  </div>
+
+  <div *ngIf="loading" class="alert alert-info">Cargando...</div>
+
+  <table class="table table-striped" *ngIf="!loading">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Descripción</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let n of items">
+        <td>{{ n.neighborhood_id }}</td>
+        <td>{{ n.name }}</td>
+        <td>{{ n.description }}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-secondary me-1" (click)="openModal('edit', n)">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger" (click)="remove(n.neighborhood_id)">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modalNeighborhood" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          {{ modalMode === 'add' ? 'Nuevo Barrio' : 'Editar Barrio' }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="mb-3">
+            <label class="form-label">Nombre del barrio</label>
+            <input class="form-control" [(ngModel)]="selected.name" name="name" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Descripción</label>
+            <textarea class="form-control" [(ngModel)]="selected.description" name="description"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" (click)="save()">
+          {{ modalMode === 'add' ? 'Guardar' : 'Actualizar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
