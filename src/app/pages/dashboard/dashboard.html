@@ -1,8 +1,19 @@
-<div class="container mt-4">
-  <h3 class="mb-3">Panel del Administrador</h3>
-  <div class="d-flex gap-2">
-    <a routerLink="/neighborhoods" class="btn btn-outline-primary">Barrios</a>
-    <a routerLink="/users" class="btn btn-outline-secondary">Usuarios</a>
+<div class="container mt-4 text-center">
+  <h3 class="mb-4">Panel del Administrador</h3>
+
+  <div class="d-flex justify-content-center gap-3">
+    <a routerLink="/neighborhoods" class="btn btn-outline-primary btn-lg">
+      <i class="bi bi-houses"></i> Barrios
+    </a>
+
+    <a routerLink="/users" class="btn btn-outline-secondary btn-lg">
+      <i class="bi bi-people"></i> Usuarios
+    </a>
+
+    <a routerLink="/mapa" class="btn btn-outline-success btn-lg">
+      <i class="bi bi-geo-alt"></i> Mapa
+    </a>
   </div>
 </div>
-<router-outlet />
+
+<router-outlet></router-outlet>
