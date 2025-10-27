@@ -1,0 +1,17 @@
+<div class="container mt-3">
+  <h4 class="mb-3">Delimitación Geográfica de Barrios</h4>
+
+  <div class="mb-3">
+    <label for="neighborhood" class="form-label">Seleccionar barrio:</label>
+    <select class="form-select" (change)="selectNeighborhood($event)">
+      <option value="">-- Selecciona un barrio --</option>
+      <option *ngFor="let n of neighborhoods" [value]="n.neighborhood_id">{{ n.name }}</option>
+    </select>
+  </div>
+
+  <div id="map"></div>
+
+  <div class="mt-3 text-center">
+    <button class="btn btn-success" (click)="saveBoundary()">Guardar Límites</button>
+  </div>
+</div>

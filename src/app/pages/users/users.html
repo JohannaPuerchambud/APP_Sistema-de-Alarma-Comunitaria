@@ -1,0 +1,107 @@
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="m-0">Gestión de Usuarios</h4>
+    <button class="btn btn-primary" (click)="openModal('add')">
+      <i class="bi bi-plus-lg"></i> Nuevo Usuario
+    </button>
+  </div>
+
+  <div *ngIf="loading" class="alert alert-info">Cargando...</div>
+
+  <table class="table table-striped" *ngIf="!loading">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Email</th>
+        <th>Barrio</th>
+        <th>Rol</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let u of users">
+        <td>{{ u.user_id }}</td>
+        <td>{{ u.name }}</td>
+        <td>{{ u.email }}</td>
+        <td>{{ u.neighborhood_name || '—' }}</td>
+        <td>
+          <span [class.badge]="true" 
+                [class.bg-primary]="u.role_id === 1"
+                [class.bg-success]="u.role_id === 2"
+                [class.bg-secondary]="u.role_id === 3">
+            {{ u.role_id === 1 ? 'Admin General' : u.role_id === 2 ? 'Admin Barrio' : 'Usuario' }}
+          </span>
+        </td>
+        <td>
+          <button class="btn btn-sm btn-outline-secondary me-1" (click)="openModal('edit', u)">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger" (click)="remove(u.user_id)">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modalUser" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          {{ modalMode === 'add' ? 'Nuevo Usuario' : 'Editar Usuario' }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Nombre</label>
+              <input class="form-control" [(ngModel)]="selected.name" name="name">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Email</label>
+              <input class="form-control" [(ngModel)]="selected.email" name="email">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Contraseña</label>
+              <input class="form-control" type="password" [(ngModel)]="selected.password" name="password">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Dirección</label>
+              <input class="form-control" [(ngModel)]="selected.address" name="address">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Barrio</label>
+              <select class="form-select" [(ngModel)]="selected.neighborhood_id" name="neighborhood_id">
+                <option *ngFor="let n of neighborhoods" [value]="n.neighborhood_id">{{ n.name }}</option>
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Rol</label>
+              <select class="form-select" [(ngModel)]="selected.role_id" name="role_id">
+                <option [value]="1">Admin General</option>
+                <option [value]="2">Admin Barrio</option>
+                <option [value]="3">Usuario</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" (click)="save()">
+          {{ modalMode === 'add' ? 'Guardar' : 'Actualizar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
