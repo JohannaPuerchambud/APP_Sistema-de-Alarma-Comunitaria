@@ -1,0 +1,122 @@
+/* Scope total para no afectar otras pantallas */
+.login-page * { box-sizing: border-box; }
+
+.login-page {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: calc(100vh - 0px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 24px;
+}
+
+.login-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.1" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,144C960,149,1056,139,1152,122.7C1248,107,1344,85,1392,74.7L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') bottom / cover no-repeat;
+  pointer-events: none;
+}
+
+.login-container {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  width: 90%;
+  max-width: 900px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  position: relative;
+  z-index: 1;
+  animation: login-slideUp 0.6s ease-out;
+}
+
+@keyframes login-slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Izquierda */
+.left-panel {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 50px 40px;
+  color: #fff;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  text-align: center; position: relative;
+}
+.left-panel::before,
+.left-panel::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+.left-panel::before { width: 200px; height: 200px; top: -50px; right: -50px; }
+.left-panel::after  { width: 150px; height: 150px; bottom: -30px; left: -30px; }
+
+.shield-icon { width: 100px; height: 100px; margin-bottom: 25px; position: relative; z-index: 1; }
+.left-panel h1 { font-size: 28px; font-weight: 700; margin-bottom: 15px; position: relative; z-index: 1; }
+.left-panel p  { font-size: 16px; line-height: 1.6; opacity: 0.95; position: relative; z-index: 1; }
+
+.features { margin-top: 30px; text-align: left; position: relative; z-index: 1; }
+.feature-item { display: flex; align-items: center; margin-bottom: 15px; font-size: 14px; }
+.feature-item svg { width: 20px; height: 20px; margin-right: 10px; flex-shrink: 0; }
+
+/* Derecha */
+.right-panel { padding: 50px 40px; display: flex; flex-direction: column; justify-content: center; }
+.login-header { text-align: center; margin-bottom: 35px; }
+.login-header h2 { color: #333; font-size: 28px; margin-bottom: 8px; font-weight: 600; }
+.login-header p  { color: #666; font-size: 14px; }
+
+/* Form */
+.form-group { margin-bottom: 22px; }
+.form-label { display: block; color: #555; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+
+.input-wrapper { position: relative; }
+.input-icon {
+  position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+  color: #999; width: 20px; height: 20px; pointer-events: none;
+}
+
+.form-control {
+  width: 100%; padding: 14px 15px 14px 45px;
+  border: 2px solid #e0e0e0; border-radius: 10px;
+  font-size: 15px; transition: all .3s ease; outline: none;
+}
+.form-control:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+}
+
+/* Botón */
+.btn-login {
+  width: 100%; padding: 15px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff; border: none; border-radius: 10px;
+  font-size: 16px; font-weight: 600; cursor: pointer;
+  transition: all .3s ease; margin-top: 10px;
+}
+.btn-login:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(102,126,234,0.3);
+}
+.btn-login:disabled { opacity: .6; cursor: not-allowed; }
+
+/* Footer */
+.footer-text { text-align: center; margin-top: 25px; color: #666; font-size: 13px; }
+.footer-text a { color: #667eea; text-decoration: none; font-weight: 600; }
+.footer-text a:hover { text-decoration: underline; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .login-container { grid-template-columns: 1fr; max-width: 450px; }
+  .left-panel { padding: 40px 30px; }
+  .left-panel h1 { font-size: 24px; }
+  .features { display: none; }
+  .right-panel { padding: 40px 30px; }
+}

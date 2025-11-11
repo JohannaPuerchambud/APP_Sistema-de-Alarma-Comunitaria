@@ -3,36 +3,49 @@
   <nav class="sidebar">
     <div class="sidebar-header text-center">
       <h5>Alarma Comunitaria</h5>
-      <hr>
+      <hr />
       <div class="user-info">
-        <i class="bi bi-person-circle fs-4"></i>
+        <i class="bi bi-person-circle"></i>
         <div>
-          <strong>{{ userName }}</strong><br>
+          <strong>{{ userName }}</strong><br />
           <small>{{ userRole }}</small>
         </div>
       </div>
-      <hr>
+      <hr />
     </div>
 
     <ul class="menu list-unstyled">
-      <li>
-        <a routerLink="/neighborhoods" routerLinkActive="active">
-          <i class="bi bi-houses"></i> Barrios
+      <li *ngIf="auth.isAdminGeneral()">
+        <a routerLink="/neighborhoods"
+           routerLinkActive="active"
+           [routerLinkActiveOptions]="{ exact: true }">
+          <i class="bi bi-building"></i>
+          Barrios
         </a>
       </li>
-      <li>
-        <a routerLink="/users" routerLinkActive="active">
-          <i class="bi bi-people"></i> Usuarios
+
+      <li *ngIf="auth.isAdminGeneral() || auth.isAdminBarrio()">
+        <a routerLink="/users"
+           routerLinkActive="active"
+           [routerLinkActiveOptions]="{ exact: true }">
+          <i class="bi bi-people"></i>
+          Usuarios
         </a>
       </li>
+
       <li>
-        <a routerLink="/mapa" routerLinkActive="active">
-          <i class="bi bi-geo-alt"></i> Mapa
+        <a routerLink="/mapa"
+           routerLinkActive="active"
+           [routerLinkActiveOptions]="{ exact: true }">
+          <i class="bi bi-geo-alt"></i>
+          Mapa
         </a>
       </li>
+
       <li class="logout">
         <a (click)="logout()">
-          <i class="bi bi-box-arrow-right"></i> Salir
+          <i class="bi bi-box-arrow-right"></i>
+          Salir
         </a>
       </li>
     </ul>
