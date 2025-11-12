@@ -6,8 +6,19 @@
     </button>
   </div>
 
+  <!-- 1. BARRA DE BÚSQUEDA AÑADIDA -->
+  <div class="mb-3">
+    <input 
+      type="text" 
+      class="form-control" 
+      placeholder="Buscar por nombre, email o barrio..."
+      [(ngModel)]="searchText"
+      (input)="applyFilters()">
+  </div>
+
   <div *ngIf="loading" class="alert alert-info">Cargando...</div>
 
+  <!-- 2. TU TABLA ORIGINAL (MODIFICADO EL *ngFor) -->
   <table class="table table-striped" *ngIf="!loading">
     <thead>
       <tr>
@@ -20,7 +31,8 @@
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let u of users">
+      <!-- 3. CAMBIO: Iteramos sobre 'paginatedUsers' -->
+      <tr *ngFor="let u of paginatedUsers">
         <td>{{ u.user_id }}</td>
         <td>{{ u.name }}</td>
         <td>{{ u.email }}</td>
@@ -42,11 +54,40 @@
           </button>
         </td>
       </tr>
+
+      <!-- Mensaje si no hay resultados -->
+      <tr *ngIf="filteredUsers.length === 0 && !loading">
+        <td colspan="6" class="text-center">No se encontraron usuarios.</td>
+      </tr>
     </tbody>
   </table>
+
+  <!-- 4. CONTROLES DE PAGINACIÓN AÑADIDOS (Bootstrap) -->
+  <nav *ngIf="totalPages > 1 && !loading" class="d-flex justify-content-center">
+    <ul class="pagination">
+      <!-- Botón Anterior -->
+      <li class="page-item" [class.disabled]="currentPage === 1">
+        <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPage - 1)">&laquo;</a>
+      </li>
+      
+      <!-- Números de Página -->
+      <li class="page-item" *ngFor="let page of pageNumbers" [class.active]="page === currentPage">
+        <a class="page-link" href="javascript:void(0)" (click)="changePage(page)">{{ page }}</a>
+      </li>
+
+      <!-- Botón Siguiente -->
+      <li class="page-item" [class.disabled]="currentPage === totalPages">
+        <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPage + 1)">&raquo;</a>
+      </li>
+    </ul>
+  </nav>
+
 </div>
 
-<!-- Modal -->
+<!-- 
+  EL MODAL NO CAMBIA:
+  Esta parte se queda exactamente igual que como la tenías.
+-->
 <div class="modal fade" id="modalUser" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -71,7 +112,7 @@
           <div class="row">
             <div class="col-md-6 mb-3">
               <label class="form-label">Contraseña</label>
-              <input class="form-control" type="password" [(ngModel)]="selected.password" name="password">
+              <input class="form-control" type="password" [(ngModel)]="selected.password" name="password" [placeholder]="modalMode === 'edit' ? '(Dejar en blanco para no cambiar)' : ''">
             </div>
             <div class="col-md-6 mb-3">
               <label class="form-label">Dirección</label>

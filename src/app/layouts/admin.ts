@@ -11,11 +11,11 @@ import { AuthService } from '../core/auth/auth.service';
     CommonModule,
     NgIf,
     RouterLink,
-    RouterLinkActive, // <- clave para routerLinkActive y routerLinkActiveOptions
+    RouterLinkActive, 
     RouterOutlet
   ],
   templateUrl: './admin.html',
-  styleUrls: ['./admin.css'] // <- plural
+  styleUrl: './admin.css' 
 })
 export class AdminLayout implements OnInit {
   userName: string = '';

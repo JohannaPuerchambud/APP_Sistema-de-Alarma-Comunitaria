@@ -6,8 +6,19 @@
     </button>
   </div>
 
+  <!-- 1. BARRA DE BÚSQUEDA AÑADIDA -->
+  <div class="mb-3">
+    <input 
+      type="text" 
+      class="form-control" 
+      placeholder="Buscar por nombre o descripción..."
+      [(ngModel)]="searchText"
+      (input)="applyFilters()">
+  </div>
+
   <div *ngIf="loading" class="alert alert-info">Cargando...</div>
 
+  <!-- 2. TABLA ORIGINAL (MODIFICADO EL *ngFor) -->
   <table class="table table-striped" *ngIf="!loading">
     <thead>
       <tr>
@@ -18,7 +29,8 @@
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let n of items">
+      <!-- 3. CAMBIO: Iteramos sobre 'paginatedItems' -->
+      <tr *ngFor="let n of paginatedItems">
         <td>{{ n.neighborhood_id }}</td>
         <td>{{ n.name }}</td>
         <td>{{ n.description }}</td>
@@ -31,11 +43,40 @@
           </button>
         </td>
       </tr>
+      
+      <!-- Mensaje si no hay resultados -->
+      <tr *ngIf="filteredItems.length === 0 && !loading">
+        <td colspan="4" class="text-center">No se encontraron barrios.</td>
+      </tr>
     </tbody>
   </table>
+
+  <!-- 4. CONTROLES DE PAGINACIÓN AÑADIDOS (Bootstrap) -->
+  <nav *ngIf="totalPages > 1 && !loading" class="d-flex justify-content-center">
+    <ul class="pagination">
+      <!-- Botón Anterior -->
+      <li class="page-item" [class.disabled]="currentPage === 1">
+        <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPage - 1)">&laquo;</a>
+      </li>
+      
+      <!-- Números de Página -->
+      <li class="page-item" *ngFor="let page of pageNumbers" [class.active]="page === currentPage">
+        <a class="page-link" href="javascript:void(0)" (click)="changePage(page)">{{ page }}</a>
+      </li>
+
+      <!-- Botón Siguiente -->
+      <li class="page-item" [class.disabled]="currentPage === totalPages">
+        <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPage + 1)">&raquo;</a>
+      </li>
+    </ul>
+  </nav>
+
 </div>
 
-<!-- Modal -->
+<!-- 
+  EL MODAL NO CAMBIA:
+  Esta parte se queda exactamente igual que como la tenías.
+-->
 <div class="modal fade" id="modalNeighborhood" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
