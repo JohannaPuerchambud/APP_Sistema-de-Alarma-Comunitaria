@@ -15,12 +15,24 @@
     </div>
 
     <ul class="menu list-unstyled">
-      <li *ngIf="auth.isAdminGeneral()">
-        <a routerLink="/neighborhoods"
+      
+      <!-- 1. NUEVO ENLACE: Visualizar Mapa -->
+      <li>
+        <a routerLink="/map-viewer"
            routerLinkActive="active"
            [routerLinkActiveOptions]="{ exact: true }">
-          <i class="bi bi-building"></i>
-          Barrios
+          <i class="bi bi-map"></i>
+          Ver Mapa de Barrios
+        </a>
+      </li>
+      
+      <!-- 2. ENLACE MODIFICADO: Solo Admin General -->
+      <li *ngIf="auth.isAdminGeneral()">
+        <a routerLink="/map-delimit"
+           routerLinkActive="active"
+           [routerLinkActiveOptions]="{ exact: true }">
+          <i class="bi bi-geo-alt"></i>
+          Delimitar Barrios
         </a>
       </li>
 
@@ -32,13 +44,13 @@
           Usuarios
         </a>
       </li>
-
-      <li>
-        <a routerLink="/mapa"
+      
+      <li *ngIf="auth.isAdminGeneral()">
+        <a routerLink="/neighborhoods"
            routerLinkActive="active"
            [routerLinkActiveOptions]="{ exact: true }">
-          <i class="bi bi-geo-alt"></i>
-          Mapa
+          <i class="bi bi-building"></i>
+          Lista de Barrios
         </a>
       </li>
 

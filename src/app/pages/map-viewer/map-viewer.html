@@ -1,0 +1,32 @@
+<div class="page-header">
+  <h4 class="m-0">Visualización de Barrios</h4>
+</div>
+
+<div class="search-container">
+  <div class="row align-items-center">
+    <div class="col-md-6">
+      <label class="form-label">Seleccionar barrio para centrar:</label>
+      <!-- 
+        AQUÍ ESTÁ LA CORRECCIÓN:
+        Cambiamos (change)="selectNeighborhood($event)"
+        POR (change)="onSelectNeighborhood($event)"
+      -->
+      <select class="form-select" (change)="onSelectNeighborhood($event)">
+        <option value="0">-- Ver Todos los Barrios --</option>
+        <option *ngFor="let n of neighborhoods" [value]="n.neighborhood_id">{{ n.name }}</option>
+      </select>
+    </div>
+    <div class="col-md-6">
+      <p class="form-text text-muted mt-2">
+        Los polígonos de todos los barrios registrados se muestran en verde.
+        Use el menú para centrar el mapa en un barrio específico.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Contenedor de la tabla (solo para el mapa) -->
+<div class="table-container">
+  <!-- El id debe ser único, por eso 'map-viewer-id' -->
+  <div id="map-viewer-id"></div>
+</div>

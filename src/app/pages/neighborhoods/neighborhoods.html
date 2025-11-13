@@ -1,70 +1,73 @@
 <div class="container mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  
+  <!-- 1. HEADER (con la nueva clase 'page-header') -->
+  <div class="page-header">
     <h4 class="m-0">Gestión de Barrios</h4>
     <button class="btn btn-primary" (click)="openModal('add')">
       <i class="bi bi-plus-lg"></i> Nuevo Barrio
     </button>
   </div>
 
-  <!-- 1. BARRA DE BÚSQUEDA AÑADIDA -->
-  <div class="mb-3">
+  <!-- 2. SEARCH BAR (con la nueva clase 'search-container') -->
+  <div class="search-container">
     <input 
       type="text" 
       class="form-control" 
-      placeholder="Buscar por nombre o descripción..."
+      placeholder="🔍 Buscar por nombre o descripción..."
       [(ngModel)]="searchText"
       (input)="applyFilters()">
   </div>
 
+  <!-- 3. LOADING STATE (se verá mejor con los nuevos estilos) -->
   <div *ngIf="loading" class="alert alert-info">Cargando...</div>
 
-  <!-- 2. TABLA ORIGINAL (MODIFICADO EL *ngFor) -->
-  <table class="table table-striped" *ngIf="!loading">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Nombre</th>
-        <th>Descripción</th>
-        <th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- 3. CAMBIO: Iteramos sobre 'paginatedItems' -->
-      <tr *ngFor="let n of paginatedItems">
-        <td>{{ n.neighborhood_id }}</td>
-        <td>{{ n.name }}</td>
-        <td>{{ n.description }}</td>
-        <td>
-          <button class="btn btn-sm btn-outline-secondary me-1" (click)="openModal('edit', n)">
-            <i class="bi bi-pencil"></i>
-          </button>
-          <button class="btn btn-sm btn-outline-danger" (click)="remove(n.neighborhood_id)">
-            <i class="bi bi-trash"></i>
-          </button>
-        </td>
-      </tr>
-      
-      <!-- Mensaje si no hay resultados -->
-      <tr *ngIf="filteredItems.length === 0 && !loading">
-        <td colspan="4" class="text-center">No se encontraron barrios.</td>
-      </tr>
-    </tbody>
-  </table>
+  <!-- 4. TABLE (envuelta en 'table-container') -->
+  <div class="table-container" *ngIf="!loading">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Descripción</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Iteramos sobre 'paginatedItems' -->
+        <tr *ngFor="let n of paginatedItems">
+          <td>{{ n.neighborhood_id }}</td>
+          <td>{{ n.name }}</td>
+          <td>{{ n.description }}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-secondary me-1" (click)="openModal('edit', n)">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" (click)="remove(n.neighborhood_id)">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
+        
+        <!-- Mensaje si no hay resultados -->
+        <tr *ngIf="filteredItems.length === 0 && !loading">
+          <td colspan="4" class="text-center" style="padding: 40px; color: #6c757d;">
+            <i class="bi bi-inbox" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
+            No se encontraron barrios.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
-  <!-- 4. CONTROLES DE PAGINACIÓN AÑADIDOS (Bootstrap) -->
+  <!-- 5. PAGINATION (los estilos se aplicarán desde neighborhoods.css) -->
   <nav *ngIf="totalPages > 1 && !loading" class="d-flex justify-content-center">
     <ul class="pagination">
-      <!-- Botón Anterior -->
       <li class="page-item" [class.disabled]="currentPage === 1">
         <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPage - 1)">&laquo;</a>
       </li>
-      
-      <!-- Números de Página -->
       <li class="page-item" *ngFor="let page of pageNumbers" [class.active]="page === currentPage">
         <a class="page-link" href="javascript:void(0)" (click)="changePage(page)">{{ page }}</a>
       </li>
-
-      <!-- Botón Siguiente -->
       <li class="page-item" [class.disabled]="currentPage === totalPages">
         <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPage + 1)">&raquo;</a>
       </li>
@@ -75,12 +78,12 @@
 
 <!-- 
   EL MODAL NO CAMBIA:
-  Esta parte se queda exactamente igual que como la tenías.
+  Los estilos se aplicarán desde neighborhoods.css
 -->
 <div class="modal fade" id="modalNeighborhood" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
+      <div class="modal-header text-white">
         <h5 class="modal-title">
           {{ modalMode === 'add' ? 'Nuevo Barrio' : 'Editar Barrio' }}
         </h5>

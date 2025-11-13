@@ -1,4 +1,334 @@
-/* AG Grid */
-@import "ag-grid-community/styles/ag-grid.css";
-@import "ag-grid-community/styles/ag-theme-quartz.css";
-/* Si usas dark: @import "ag-grid-community/styles/ag-theme-quartz-dark.css"; */
+/* ========== ESTILOS PARA GESTIÓN DE USUARIOS ========== */
+
+/* NOTA: Tu .container ya viene de 'users.html', 
+   pero estos estilos del ejemplo lo mejoran */
+:host .container {
+    max-width: 1400px;
+    padding-top: 0; /* Ajustado para que combine con el padding de admin.css */
+}
+
+/* ========== HEADER ========== */
+.page-header {
+    background: white;
+    border-radius: 12px;
+    padding: 25px 30px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid #667eea;
+}
+
+.page-header h4 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+/* Estilos para el botón principal (anula Bootstrap) */
+.btn-primary {
+    background: #667eea;
+    border: none;
+    padding: 11px 22px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
+    font-size: 14px;
+}
+
+.btn-primary:hover {
+    background: #5568d3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary i {
+    margin-right: 6px;
+}
+
+/* ========== SEARCH BAR ========== */
+.search-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    margin-bottom: 20px;
+}
+
+.search-container input {
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
+    padding: 11px 20px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    width: 100%;
+    background: #fafafa;
+}
+
+.search-container input:focus {
+    outline: none;
+    border-color: #667eea;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.08);
+}
+
+/* ========== TABLE CONTAINER ========== */
+.table-container {
+    background: white;
+    border-radius: 12px;
+    padding: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+/* ========== TABLE ========== */
+.table {
+    margin-bottom: 0;
+}
+
+.table thead {
+    background: #f8f9fa;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.table thead th {
+    color: #495057;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    padding: 16px 20px;
+    border: none;
+    vertical-align: middle;
+}
+
+.table tbody tr {
+    transition: background 0.2s ease;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.table tbody td {
+    padding: 16px 20px;
+    vertical-align: middle;
+    color: #495057;
+    font-size: 14px;
+}
+
+.table tbody tr:last-child {
+    border-bottom: none;
+}
+
+/* ========== BADGES ========== */
+/* Sobrescribimos los estilos de 'users.css' si existen */
+:host .badge {
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    color: white;
+}
+
+:host .badge.bg-primary {
+    background: #667eea !important;
+}
+
+:host .badge.bg-success {
+    background: #10b981 !important;
+}
+
+:host .badge.bg-secondary {
+    background: #6c757d !important;
+}
+
+/* ========== ACTION BUTTONS ========== */
+.btn-sm {
+    padding: 7px 11px;
+    border-radius: 6px;
+    font-size: 13px;
+    transition: all 0.2s ease;
+    border: 1.5px solid;
+}
+
+.btn-outline-secondary {
+    border-color: #dee2e6;
+    color: #6c757d;
+    background: white;
+}
+
+.btn-outline-secondary:hover {
+    background: #667eea;
+    border-color: #667eea;
+    color: white;
+}
+
+.btn-outline-danger {
+    border-color: #fee;
+    color: #dc3545;
+    background: white;
+}
+
+.btn-outline-danger:hover {
+    background: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+/* ========== PAGINATION ========== */
+.pagination {
+    margin-top: 20px;
+    margin-bottom: 0;
+}
+
+.page-item .page-link {
+    border: 1.5px solid #dee2e6;
+    color: #495057;
+    padding: 8px 14px;
+    margin: 0 3px;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    background: white;
+}
+
+.page-item .page-link:hover {
+    background: #f8f9fa;
+    border-color: #667eea;
+    color: #667eea;
+}
+
+.page-item.active .page-link {
+    background: #667eea;
+    border-color: #667eea;
+    color: white;
+}
+
+.page-item.disabled .page-link {
+    background: #f8f9fa;
+    border-color: #dee2e6;
+    color: #adb5bd;
+    cursor: not-allowed;
+}
+
+/* ========== LOADING & EMPTY STATE ========== */
+.alert {
+    border-radius: 10px;
+    padding: 16px 20px;
+    border: none;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.alert-info {
+    background: #e8eaf6;
+    color: #3949ab;
+    border-left: 4px solid #667eea;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* ========== MODAL STYLES (Aplicará a tu modal) ========== */
+/* Usamos :host ::ng-deep para "perforar" el scope 
+   y aplicar estilos al modal que vive fuera del componente */
+
+:host ::ng-deep .modal-content {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.15);
+}
+
+:host ::ng-deep .modal-header {
+    background: #667eea !important; /* !important para ganar a Bootstrap */
+    border-radius: 12px 12px 0 0;
+    padding: 18px 25px;
+    border-bottom: none;
+}
+
+:host ::ng-deep .modal-header .modal-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+:host ::ng-deep .modal-body {
+    padding: 25px;
+}
+
+:host ::ng-deep .modal-footer {
+    padding: 18px 25px;
+    border-top: 1px solid #f0f0f0;
+    background: #fafafa;
+}
+
+:host ::ng-deep .form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+:host ::ng-deep .form-control,
+:host ::ng-deep .form-select {
+    border: 1.5px solid #dee2e6;
+    border-radius: 8px;
+    padding: 10px 14px;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    background: white;
+}
+
+:host ::ng-deep .form-control:focus,
+:host ::ng-deep .form-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.08);
+}
+
+:host ::ng-deep .btn-secondary {
+    background: #6c757d;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+:host ::ng-deep .btn-secondary:hover {
+    background: #5a6268;
+}
+
+:host ::ng-deep .btn-close-white {
+    filter: brightness(0) invert(1);
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .table-container {
+        overflow-x: auto;
+    }
+
+    .table {
+        min-width: 800px;
+    }
+
+    :host .container {
+        padding: 20px 0px;
+    }
+}

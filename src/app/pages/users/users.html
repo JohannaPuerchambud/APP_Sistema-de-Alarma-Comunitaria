@@ -1,81 +1,84 @@
 <div class="container mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  
+  <!-- 1. HEADER (con la nueva clase 'page-header') -->
+  <div class="page-header">
     <h4 class="m-0">Gestión de Usuarios</h4>
     <button class="btn btn-primary" (click)="openModal('add')">
       <i class="bi bi-plus-lg"></i> Nuevo Usuario
     </button>
   </div>
 
-  <!-- 1. BARRA DE BÚSQUEDA AÑADIDA -->
-  <div class="mb-3">
+  <!-- 2. SEARCH BAR (con la nueva clase 'search-container') -->
+  <div class="search-container">
     <input 
       type="text" 
       class="form-control" 
-      placeholder="Buscar por nombre, email o barrio..."
+      placeholder="🔍 Buscar por nombre, email o barrio..."
       [(ngModel)]="searchText"
       (input)="applyFilters()">
   </div>
 
+  <!-- 3. LOADING STATE (se verá mejor con los nuevos estilos) -->
   <div *ngIf="loading" class="alert alert-info">Cargando...</div>
 
-  <!-- 2. TU TABLA ORIGINAL (MODIFICADO EL *ngFor) -->
-  <table class="table table-striped" *ngIf="!loading">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Nombre</th>
-        <th>Email</th>
-        <th>Barrio</th>
-        <th>Rol</th>
-        <th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- 3. CAMBIO: Iteramos sobre 'paginatedUsers' -->
-      <tr *ngFor="let u of paginatedUsers">
-        <td>{{ u.user_id }}</td>
-        <td>{{ u.name }}</td>
-        <td>{{ u.email }}</td>
-        <td>{{ u.neighborhood_name || '—' }}</td>
-        <td>
-          <span [class.badge]="true" 
-                [class.bg-primary]="u.role_id === 1"
-                [class.bg-success]="u.role_id === 2"
-                [class.bg-secondary]="u.role_id === 3">
-            {{ u.role_id === 1 ? 'Admin General' : u.role_id === 2 ? 'Admin Barrio' : 'Usuario' }}
-          </span>
-        </td>
-        <td>
-          <button class="btn btn-sm btn-outline-secondary me-1" (click)="openModal('edit', u)">
-            <i class="bi bi-pencil"></i>
-          </button>
-          <button class="btn btn-sm btn-outline-danger" (click)="remove(u.user_id)">
-            <i class="bi bi-trash"></i>
-          </button>
-        </td>
-      </tr>
+  <!-- 4. TABLE (envuelta en 'table-container') -->
+  <div class="table-container" *ngIf="!loading">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Email</th>
+          <th>Barrio</th>
+          <th>Rol</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- El *ngFor sigue siendo el mismo -->
+        <tr *ngFor="let u of paginatedUsers">
+          <td>{{ u.user_id }}</td>
+          <td>{{ u.name }}</td>
+          <td>{{ u.email }}</td>
+          <td>{{ u.neighborhood_name || '—' }}</td>
+          <td>
+            <span [class.badge]="true" 
+                  [class.bg-primary]="u.role_id === 1"
+                  [class.bg-success]="u.role_id === 2"
+                  [class.bg-secondary]="u.role_id === 3">
+              {{ u.role_id === 1 ? 'Admin General' : u.role_id === 2 ? 'Admin Barrio' : 'Usuario' }}
+            </span>
+          </td>
+          <td>
+            <button class="btn btn-sm btn-outline-secondary me-1" (click)="openModal('edit', u)">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" (click)="remove(u.user_id)">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
 
-      <!-- Mensaje si no hay resultados -->
-      <tr *ngIf="filteredUsers.length === 0 && !loading">
-        <td colspan="6" class="text-center">No se encontraron usuarios.</td>
-      </tr>
-    </tbody>
-  </table>
+        <!-- Mensaje si no hay resultados -->
+        <tr *ngIf="filteredUsers.length === 0 && !loading">
+          <td colspan="6" class="text-center" style="padding: 40px; color: #6c757d;">
+            <i class="bi bi-inbox" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
+            No se encontraron usuarios.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
-  <!-- 4. CONTROLES DE PAGINACIÓN AÑADIDOS (Bootstrap) -->
+  <!-- 5. PAGINATION (se verá mejor con los nuevos estilos) -->
   <nav *ngIf="totalPages > 1 && !loading" class="d-flex justify-content-center">
     <ul class="pagination">
-      <!-- Botón Anterior -->
       <li class="page-item" [class.disabled]="currentPage === 1">
         <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPage - 1)">&laquo;</a>
       </li>
-      
-      <!-- Números de Página -->
       <li class="page-item" *ngFor="let page of pageNumbers" [class.active]="page === currentPage">
         <a class="page-link" href="javascript:void(0)" (click)="changePage(page)">{{ page }}</a>
       </li>
-
-      <!-- Botón Siguiente -->
       <li class="page-item" [class.disabled]="currentPage === totalPages">
         <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPage + 1)">&raquo;</a>
       </li>
@@ -86,12 +89,12 @@
 
 <!-- 
   EL MODAL NO CAMBIA:
-  Esta parte se queda exactamente igual que como la tenías.
+  Se queda igual, pero ahora será estilizado por el nuevo CSS.
 -->
 <div class="modal fade" id="modalUser" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
+      <div class="modal-header text-white">
         <h5 class="modal-title">
           {{ modalMode === 'add' ? 'Nuevo Usuario' : 'Editar Usuario' }}
         </h5>
