@@ -1,7 +1,7 @@
+// src/app/layouts/admin.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, NgIf } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { jwtDecode } from 'jwt-decode';
 import { AuthService } from '../core/auth/auth.service';
 
 @Component({
@@ -11,11 +11,11 @@ import { AuthService } from '../core/auth/auth.service';
     CommonModule,
     NgIf,
     RouterLink,
-    RouterLinkActive, 
+    RouterLinkActive,
     RouterOutlet
   ],
   templateUrl: './admin.html',
-  styleUrl: './admin.css' 
+  styleUrl: './admin.css'
 })
 export class AdminLayout implements OnInit {
   userName: string = '';
@@ -31,24 +31,24 @@ export class AdminLayout implements OnInit {
   }
 
   loadUserData() {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const decoded: any = jwtDecode(token);
-        this.userName = decoded.name || 'Usuario';
-        const role = decoded.role || decoded.role_id;
+    const claims = this.auth.claims();
 
-        if (role === 1 || role === '1') this.userRole = 'Admin General';
-        else if (role === 2 || role === '2') this.userRole = 'Admin Barrio';
-        else this.userRole = 'Usuario';
-      } catch (error) {
-        console.error('Error al decodificar token:', error);
-      }
+    if (!claims) {
+      this.userName = 'Usuario';
+      this.userRole = '';
+      return;
     }
+
+    this.userName = claims.name || 'Usuario';
+
+    const role = claims.role;
+    if (role === 1)      this.userRole = 'Admin General';
+    else if (role === 2) this.userRole = 'Admin Barrio';
+    else                 this.userRole = 'Usuario';
   }
 
   logout() {
-    localStorage.clear();
-    this.router.navigate(['/']);
+    this.auth.logout();              
+    this.router.navigate(['/login']); 
   }
 }

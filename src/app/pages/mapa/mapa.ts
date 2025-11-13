@@ -95,35 +95,49 @@ export class Mapa implements OnInit, OnDestroy {
    * Se activa al cambiar el <select>
    */
   selectNeighborhood(event: any) {
-    const id = +event.target.value;
-    this.selectedNeighborhood = this.neighborhoods.find(n => n.neighborhood_id === id) || null;
-    
-    // Limpiar cualquier dibujo anterior
-    this.clearDrawing(); 
-    
-    if (this.selectedNeighborhood && this.selectedNeighborhood.boundary) {
-      // Si tiene datos, mostrar el polígono guardado (en rojo)
-      try {
-        const coords = JSON.parse(this.selectedNeighborhood.boundary);
-        
-        // ✅ INICIO DE CORRECCIÓN 2 (Error TS2345)
-        // Asignar los puntos del polígono guardado al dibujo actual (para editar)
-        this.drawingPoints = coords.map((p: number[]) => L.latLng(p[0], p[1]));
-        // ✅ FIN DE CORRECCIÓN 2
-        
-        this.drawingLayer = L.polygon(this.drawingPoints, { 
-          color: '#dc3545', // Rojo para "polígono actual/editando"
-          weight: 3
-        }).addTo(this.map);
-        
-        this.map.fitBounds(this.drawingLayer.getBounds());
-        
-      } catch (e) {
-        console.error('Error al cargar polígono para editar:', e);
-        this.drawingPoints = []; // Resetear por si el JSON estaba corrupto
-      }
+  const id = +event.target.value;
+  this.selectedNeighborhood = this.neighborhoods.find(n => n.neighborhood_id === id) || null;
+
+  // Limpiar cualquier dibujo anterior
+  this.clearDrawing();
+
+  if (this.selectedNeighborhood && this.selectedNeighborhood.boundary) {
+    try {
+      const raw = this.selectedNeighborhood.boundary;
+
+      // 👉 Puede venir como string ("[[lat,lng],...]" ) o como array ([[lat,lng],...])
+      const coords = typeof raw === 'string' ? JSON.parse(raw) : raw;
+
+      if (!Array.isArray(coords)) return;
+
+      // Convertimos a LatLng
+      this.drawingPoints = coords
+        .filter((p: any) =>
+          Array.isArray(p) &&
+          p.length === 2 &&
+          typeof p[0] === 'number' &&
+          typeof p[1] === 'number'
+        )
+        .map((p: number[]) => L.latLng(p[0], p[1]));
+
+      if (!this.drawingPoints.length) return;
+
+      // Dibujamos el polígono ROJO (barrio actual)
+      this.drawingLayer = L.polygon(this.drawingPoints, {
+        color: '#dc3545', // rojo para "polígono guardado"
+        weight: 3
+      }).addTo(this.map);
+
+      // Hacemos zoom al polígono
+      this.map.fitBounds(this.drawingLayer.getBounds());
+
+    } catch (e) {
+      console.error('Error al cargar polígono para editar:', e, this.selectedNeighborhood.boundary);
+      this.drawingPoints = [];
     }
   }
+}
+
 
   /**
    * ✅ INICIO DE CORRECCIÓN 1 (Error TS2554)

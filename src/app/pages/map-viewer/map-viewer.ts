@@ -52,46 +52,57 @@ export class MapViewerComponent implements OnInit, OnDestroy {
   }
 
   loadAndDrawNeighborhoods() {
-    this.service.getAll().subscribe({
-      next: (neighborhoods) => {
-        this.neighborhoods = neighborhoods;
-        this.allLayers.clearLayers(); // Limpiar capas existentes
-        this.layerMap = {}; // Limpiar referencias
+  this.service.getAll().subscribe({
+    next: (neighborhoods) => {
+      this.neighborhoods = neighborhoods;
+      this.allLayers.clearLayers(); // Limpiar capas existentes
+      this.layerMap = {}; // Limpiar referencias
 
-        neighborhoods.forEach(n => {
-          // El 'boundary' que viene de la BD (JSONB) ya es un objeto, no un string.
-          // El `[null]` de "El Olivo" (image_7fbebe.png) se interpreta como 'null'
-          if (n.boundary && Array.isArray(n.boundary)) {
-            try {
-              
-              // ✅ INICIO DE LA CORRECCIÓN
-              // Ya no necesitamos JSON.parse(), 'n.boundary' ES el array de coordenadas
-              const coords = n.boundary; 
-              // ✅ FIN DE LA CORRECCIÓN
+      neighborhoods.forEach(n => {
+        if (!n.boundary) return;
 
-              const polygon = L.polygon(coords.map((p: number[]) => L.latLng(p[0], p[1])), {
-                color: '#28a745', // Verde
-                weight: 2,
-                opacity: 0.7,
-              });
+        let coords: any;
 
-              polygon.bindPopup(`<b>${n.name}</b>`);
-              this.allLayers.addLayer(polygon);
-              this.layerMap[n.neighborhood_id] = polygon;
-              
-            } catch (e) {
-              // El error que ves en la consola viene de aquí
-              console.error(`Error al cargar polígono: ${n.name}`, e);
-            }
-          }
+        try {
+          // Si viene como string (lo normal en tu caso), lo parseamos
+          coords = typeof n.boundary === 'string'
+            ? JSON.parse(n.boundary)
+            : n.boundary;
+        } catch (e) {
+          console.error(`Error al parsear boundary de ${n.name}:`, e, n.boundary);
+          return;
+        }
+
+        if (!Array.isArray(coords) || coords.length < 3) return;
+
+        const latlngs = coords
+          .filter((p: any) =>
+            Array.isArray(p) &&
+            p.length === 2 &&
+            typeof p[0] === 'number' &&
+            typeof p[1] === 'number'
+          )
+          .map((p: number[]) => L.latLng(p[0], p[1]));
+
+        if (!latlngs.length) return;
+
+        const polygon = L.polygon(latlngs, {
+          color: '#28a745', // Verde
+          weight: 2,
+          opacity: 0.7,
         });
 
-        // Añadir todos los polígonos verdes al mapa
-        this.map.addLayer(this.allLayers);
-      },
-      error: (err) => console.error(err)
-    });
-  }
+        polygon.bindPopup(`<b>${n.name}</b>`);
+        this.allLayers.addLayer(polygon);
+        this.layerMap[n.neighborhood_id] = polygon;
+      });
+
+      // Añadir todos los polígonos verdes al mapa
+      this.map.addLayer(this.allLayers);
+    },
+    error: (err) => console.error(err)
+  });
+}
 
   onSelectNeighborhood(event: any) {
     const id = +event.target.value;

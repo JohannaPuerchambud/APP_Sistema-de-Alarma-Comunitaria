@@ -10,7 +10,7 @@ export const routes: Routes = [
     canActivate: [roleGuard([1, 2])],
     children: [
       // Redirección por defecto
-      { path: '', pathMatch: 'full', redirectTo: 'map-viewer' }, // 👈 CAMBIO: Ir al visualizador
+      { path: '', pathMatch: 'full', redirectTo: 'users' }, // 👈 CAMBIO: Ir al visualizador
       
       {
         path: 'users',
