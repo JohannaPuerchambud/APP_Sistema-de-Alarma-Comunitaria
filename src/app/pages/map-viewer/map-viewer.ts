@@ -14,7 +14,6 @@ const iconDefault = L.icon({
 });
 L.Marker.prototype.options.icon = iconDefault;
 
-
 @Component({
   selector: 'app-map-viewer',
   standalone: true,
@@ -25,13 +24,28 @@ L.Marker.prototype.options.icon = iconDefault;
 export class MapViewerComponent implements OnInit, OnDestroy {
   map!: L.Map;
   neighborhoods: any[] = [];
-  
+
   // Capa para todos los polígonos verdes
   private allLayers = L.layerGroup();
-  // Referencia para hacer zoom
+  // Referencia para hacer zoom por id
   private layerMap: { [key: number]: L.Polygon } = {};
 
-  constructor(private service: NeighborhoodService) { }
+  // ⭐ NUEVO: manejo de resaltado
+  private selectedPolygon: L.Polygon | null = null;
+
+  private defaultStyle: L.PathOptions = {
+    color: '#28a745',
+    weight: 2,
+    opacity: 0.7
+  };
+
+  private highlightStyle: L.PathOptions = {
+    color: '#ffc107',
+    weight: 4,
+    opacity: 0.9
+  };
+
+  constructor(private service: NeighborhoodService) {}
 
   ngOnInit(): void {
     this.initMap();
@@ -52,63 +66,59 @@ export class MapViewerComponent implements OnInit, OnDestroy {
   }
 
   loadAndDrawNeighborhoods() {
-  this.service.getAll().subscribe({
-    next: (neighborhoods) => {
-      this.neighborhoods = neighborhoods;
-      this.allLayers.clearLayers(); // Limpiar capas existentes
-      this.layerMap = {}; // Limpiar referencias
+    this.service.getAll().subscribe({
+      next: (neighborhoods) => {
+        this.neighborhoods = neighborhoods;
+        this.allLayers.clearLayers(); // Limpiar capas existentes
+        this.layerMap = {}; // Limpiar referencias
+        this.selectedPolygon = null; // limpiar resaltado
 
-      neighborhoods.forEach(n => {
-        if (!n.boundary) return;
+        neighborhoods.forEach(n => {
+          // Aquí asumes el formato que ya tienes funcionando
+          if (n.boundary && Array.isArray(n.boundary)) {
+            try {
+              const coords = n.boundary;
 
-        let coords: any;
+              const polygon = L.polygon(
+                coords.map((p: number[]) => L.latLng(p[0], p[1])),
+                this.defaultStyle // ⭐ usar estilo por defecto
+              );
 
-        try {
-          // Si viene como string (lo normal en tu caso), lo parseamos
-          coords = typeof n.boundary === 'string'
-            ? JSON.parse(n.boundary)
-            : n.boundary;
-        } catch (e) {
-          console.error(`Error al parsear boundary de ${n.name}:`, e, n.boundary);
-          return;
-        }
+              polygon.bindPopup(`<b>${n.name}</b>`);
+              this.allLayers.addLayer(polygon);
+              this.layerMap[n.neighborhood_id] = polygon;
 
-        if (!Array.isArray(coords) || coords.length < 3) return;
-
-        const latlngs = coords
-          .filter((p: any) =>
-            Array.isArray(p) &&
-            p.length === 2 &&
-            typeof p[0] === 'number' &&
-            typeof p[1] === 'number'
-          )
-          .map((p: number[]) => L.latLng(p[0], p[1]));
-
-        if (!latlngs.length) return;
-
-        const polygon = L.polygon(latlngs, {
-          color: '#28a745', // Verde
-          weight: 2,
-          opacity: 0.7,
+            } catch (e) {
+              console.error(`Error al cargar polígono: ${n.name}`, e);
+            }
+          }
         });
 
-        polygon.bindPopup(`<b>${n.name}</b>`);
-        this.allLayers.addLayer(polygon);
-        this.layerMap[n.neighborhood_id] = polygon;
-      });
-
-      // Añadir todos los polígonos verdes al mapa
-      this.map.addLayer(this.allLayers);
-    },
-    error: (err) => console.error(err)
-  });
-}
+        // Añadir todos los polígonos verdes al mapa
+        this.map.addLayer(this.allLayers);
+      },
+      error: (err) => console.error(err)
+    });
+  }
 
   onSelectNeighborhood(event: any) {
     const id = +event.target.value;
+
+    // 🔹 Quitar resaltado anterior si existe
+    if (this.selectedPolygon) {
+      this.selectedPolygon.setStyle(this.defaultStyle);
+      this.selectedPolygon = null;
+    }
+
     if (id && this.layerMap[id]) {
       // Si seleccionan un barrio, hacemos zoom a ese polígono
       const polygon = this.layerMap[id];
+
+      // 🔹 Aplicar estilo resaltado
+      polygon.setStyle(this.highlightStyle);
+      polygon.bringToFront();
+      this.selectedPolygon = polygon;
+
       this.map.fitBounds(polygon.getBounds());
       polygon.openPopup();
     } else {

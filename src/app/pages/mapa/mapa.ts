@@ -25,13 +25,19 @@ export class Mapa implements OnInit, OnDestroy {
   neighborhoods: any[] = [];
   selectedNeighborhood: any = null;
 
-  // Capa para el polígono que se está dibujando (azul o rojo)
+  // Capa para el polígono que se está dibujando
   private drawingLayer: L.Polygon | null = null;
   private drawingPoints: L.LatLng[] = [];
-  
+
+  // Marcadores de vértice (para arrastrar / borrar)
+  private vertexMarkers: L.Marker[] = [];
+
   private mapClickListener: any;
 
-  constructor(private service: NeighborhoodService) { }
+  // Estado de dibujo: true = aceptamos clics, false = polígono cerrado
+  private isDrawing = true;
+
+  constructor(private service: NeighborhoodService) {}
 
   ngOnInit(): void {
     this.initMap();
@@ -39,7 +45,6 @@ export class Mapa implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Limpiar el mapa y los eventos al salir
     if (this.map) {
       this.map.off('click', this.mapClickListener);
       this.map.remove();
@@ -48,40 +53,30 @@ export class Mapa implements OnInit, OnDestroy {
 
   initMap() {
     this.map = L.map('map').setView([0.3517, -78.1223], 13); // Centrado en Ibarra
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(this.map);
 
-    // Definir el listener de clic
+    // Listener de clics para añadir puntos
     this.mapClickListener = (e: L.LeafletMouseEvent) => {
-      // Si no hay un barrio seleccionado, no hacer nada
       if (!this.selectedNeighborhood) {
         alert('Por favor, selecciona un barrio del menú antes de dibujar.');
         return;
       }
 
-      // Añadir punto para el polígono azul
-      this.drawingPoints.push(e.latlng);
-      
-      // Quitar el polígono anterior (sea azul o rojo)
-      if (this.drawingLayer) {
-        this.map.removeLayer(this.drawingLayer);
+      if (!this.isDrawing) {
+        // Si el polígono está cerrado, no aceptamos más puntos
+        return;
       }
-      
-      // Dibujar el nuevo polígono azul
-      this.drawingLayer = L.polygon(this.drawingPoints, { 
-        color: '#3388ff', // Azul para "nuevo dibujo"
-        weight: 3
-      }).addTo(this.map);
+
+      this.addPoint(e.latlng);
     };
 
-    // Activar el listener de clics
     this.map.on('click', this.mapClickListener);
   }
 
-  /**
-   * Carga solo la lista de barrios para el dropdown
-   */
+  /** Carga solo la lista de barrios para el dropdown */
   loadNeighborhoods() {
     this.service.getAll().subscribe({
       next: (res) => {
@@ -91,115 +86,211 @@ export class Mapa implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Se activa al cambiar el <select>
-   */
+  /** Se activa al cambiar el <select> */
   selectNeighborhood(event: any) {
-  const id = +event.target.value;
-  this.selectedNeighborhood = this.neighborhoods.find(n => n.neighborhood_id === id) || null;
+    const id = +event.target.value;
+    this.selectedNeighborhood = this.neighborhoods.find(n => n.neighborhood_id === id) || null;
 
-  // Limpiar cualquier dibujo anterior
-  this.clearDrawing();
+    // Limpiar dibujo anterior
+    this.clearDrawing();
 
-  if (this.selectedNeighborhood && this.selectedNeighborhood.boundary) {
-    try {
-      const raw = this.selectedNeighborhood.boundary;
+    if (this.selectedNeighborhood && this.selectedNeighborhood.boundary) {
+      try {
+        const raw = this.selectedNeighborhood.boundary;
+        const coords = typeof raw === 'string' ? JSON.parse(raw) : raw;
 
-      // 👉 Puede venir como string ("[[lat,lng],...]" ) o como array ([[lat,lng],...])
-      const coords = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (!Array.isArray(coords)) return;
 
-      if (!Array.isArray(coords)) return;
+        // Añadir puntos usando addPoint (crea marcadores y polígono)
+        coords.forEach((p: number[]) => {
+          if (Array.isArray(p) && p.length === 2) {
+            this.addPoint(L.latLng(p[0], p[1]));
+          }
+        });
 
-      // Convertimos a LatLng
-      this.drawingPoints = coords
-        .filter((p: any) =>
-          Array.isArray(p) &&
-          p.length === 2 &&
-          typeof p[0] === 'number' &&
-          typeof p[1] === 'number'
-        )
-        .map((p: number[]) => L.latLng(p[0], p[1]));
+        // Dibujar polígono en rojo y sin punteado
+        if (this.drawingLayer) {
+          this.drawingLayer.setStyle({ color: '#dc3545', dashArray: undefined });
+        }
 
-      if (!this.drawingPoints.length) return;
+        this.isDrawing = false; // Polígono ya cerrado
 
-      // Dibujamos el polígono ROJO (barrio actual)
-      this.drawingLayer = L.polygon(this.drawingPoints, {
-        color: '#dc3545', // rojo para "polígono guardado"
-        weight: 3
-      }).addTo(this.map);
+        if (this.drawingLayer) {
+          this.map.fitBounds(this.drawingLayer.getBounds());
+        }
 
-      // Hacemos zoom al polígono
-      this.map.fitBounds(this.drawingLayer.getBounds());
-
-    } catch (e) {
-      console.error('Error al cargar polígono para editar:', e, this.selectedNeighborhood.boundary);
-      this.drawingPoints = [];
+      } catch (e) {
+        console.error('Error al cargar polígono para editar:', e, this.selectedNeighborhood.boundary);
+        this.clearDrawing();
+      }
     }
   }
-}
 
+  /** Añade un punto al dibujo (clic en mapa o al cargar desde BD) */
+  private addPoint(latlng: L.LatLng) {
+    this.drawingPoints.push(latlng);
 
-  /**
-   * ✅ INICIO DE CORRECCIÓN 1 (Error TS2554)
-   * Limpia el polígono (el dibujo actual) - Sin argumentos
-   */
-  clearDrawing() {
-  // ✅ FIN DE CORRECCIÓN 1
+    const marker = L.marker(latlng, {
+      draggable: true,
+      icon: L.divIcon({
+        className: 'vertex-marker',
+        iconSize: [12, 12]
+      })
+    });
+
+    // Arrastrar vértice → actualiza polígono
+    marker.on('drag', (ev: any) => {
+      const idx = this.vertexMarkers.indexOf(marker);
+      if (idx >= 0) {
+        this.drawingPoints[idx] = ev.target.getLatLng();
+        this.redrawPolygon();
+      }
+    });
+
+    // Click derecho → eliminar vértice
+    marker.on('contextmenu', () => {
+      const idx = this.vertexMarkers.indexOf(marker);
+      if (idx >= 0) {
+        this.map.removeLayer(marker);
+        this.vertexMarkers.splice(idx, 1);
+        this.drawingPoints.splice(idx, 1);
+        this.redrawPolygon();
+      }
+    });
+
+    marker.addTo(this.map);
+    this.vertexMarkers.push(marker);
+
+    this.redrawPolygon();
+  }
+
+  /** Redibuja el polígono con los puntos actuales */
+  private redrawPolygon() {
     if (this.drawingLayer) {
       this.map.removeLayer(this.drawingLayer);
       this.drawingLayer = null;
     }
-    this.drawingPoints = [];
+
+    if (this.drawingPoints.length < 2) return;
+
+    this.drawingLayer = L.polygon(this.drawingPoints, {
+      color: '#3388ff',
+      weight: 3,
+      dashArray: this.isDrawing ? '5, 5' : undefined   // punteado mientras dibujas
+    }).addTo(this.map);
   }
 
-  /**
-   * Guarda el polígono que se está dibujando (azul o rojo)
-   */
+  /** Limpia el polígono y los vértices (vuelve a modo dibujo) */
+  clearDrawing() {
+    if (this.drawingLayer) {
+      this.map.removeLayer(this.drawingLayer);
+      this.drawingLayer = null;
+    }
+
+    this.vertexMarkers.forEach(m => this.map.removeLayer(m));
+    this.vertexMarkers = [];
+
+    this.drawingPoints = [];
+    this.isDrawing = true;
+  }
+
+  /** Cierra el polígono (deja de aceptar puntos nuevos) */
+  finishDrawing() {
+    if (this.drawingPoints.length < 3) {
+      alert('Necesitas al menos 3 puntos para cerrar el polígono.');
+      return;
+    }
+
+    if (this.isSelfIntersecting()) {
+      alert('El polígono tiene segmentos que se cruzan. Ajusta los puntos antes de cerrar.');
+      return;
+    }
+
+    this.isDrawing = false;
+
+    if (this.drawingLayer) {
+      this.drawingLayer.setStyle({ dashArray: undefined }); // línea sólida
+    }
+  }
+
+  /** Comprueba si el polígono se cruza a sí mismo (validación básica) */
+  private isSelfIntersecting(): boolean {
+    const pts = this.drawingPoints;
+    if (pts.length < 4) return false;
+
+    const segments: [L.LatLng, L.LatLng][] = [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i];
+      const b = pts[(i + 1) % pts.length]; // último con primero
+      segments.push([a, b]);
+    }
+
+    for (let i = 0; i < segments.length; i++) {
+      for (let j = i + 1; j < segments.length; j++) {
+        // saltar segmentos adyacentes y el primero con el último
+        if (Math.abs(i - j) <= 1 || (i === 0 && j === segments.length - 1)) {
+          continue;
+        }
+
+        const [a1, a2] = segments[i];
+        const [b1, b2] = segments[j];
+
+        if (this.segmentsIntersect(a1, a2, b1, b2)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private segmentsIntersect(p1: L.LatLng, p2: L.LatLng, p3: L.LatLng, p4: L.LatLng): boolean {
+    const d = (p4.lng - p3.lng) * (p2.lat - p1.lat) - (p4.lat - p3.lat) * (p2.lng - p1.lng);
+    if (d === 0) return false; // paralelos
+
+    const ua = ((p4.lat - p3.lat) * (p1.lng - p3.lng) - (p4.lng - p3.lng) * (p1.lat - p3.lat)) / d;
+    const ub = ((p2.lat - p1.lat) * (p1.lng - p3.lng) - (p2.lng - p1.lng) * (p1.lat - p3.lat)) / d;
+
+    return ua > 0 && ua < 1 && ub > 0 && ub < 1;
+  }
+
+  /** Guarda el polígono que se está dibujando */
   saveBoundary() {
     if (!this.selectedNeighborhood) {
       alert('Selecciona un barrio primero.');
       return;
     }
-    // Si no hay polígono en la capa de dibujo, no hay nada que guardar
-    if (!this.drawingLayer || this.drawingPoints.length === 0) { 
-      alert('Dibuja un polígono (haciendo clics en el mapa) antes de guardar.');
+
+    if (this.drawingPoints.length < 3) {
+      alert('Debes dibujar al menos 3 puntos para guardar el polígono.');
       return;
     }
 
-    // Obtener coordenadas del polígono
-    const latlngs = this.drawingLayer.getLatLngs() as L.LatLng[][];
-    // Asegurarse de que sea un polígono simple
-    if (!latlngs[0]) return; 
+    if (this.isSelfIntersecting()) {
+      alert('El polígono tiene segmentos que se cruzan. Corrige los puntos antes de guardar.');
+      return;
+    }
 
-    const coordinates = latlngs[0].map((p: L.LatLng) => [p.lat, p.lng]);
+    // Usamos los puntos actuales para guardar
+    const coordinates = this.drawingPoints.map((p: L.LatLng) => [p.lat, p.lng]);
     const boundaryJson = JSON.stringify(coordinates);
 
-    // Preparamos los datos para la API
     const dataToSave = {
       ...this.selectedNeighborhood,
-      boundary: boundaryJson // Sobrescribir el boundary
+      boundary: boundaryJson
     };
 
-    // Llamar a la API (que ya corregimos)
     this.service.update(this.selectedNeighborhood.neighborhood_id, dataToSave).subscribe({
       next: () => {
         alert('¡Límites guardados correctamente! 🗺️');
-        
-        // Actualizamos el polígono guardado en la lista local
-        this.selectedNeighborhood.boundary = boundaryJson;
-         
-        // Limpiamos el dibujo y volvemos a cargar el polígono (ahora en rojo)
-        this.clearDrawing();
-        
-        // ✅ INICIO DE CORRECCIÓN 2 (Error TS2345)
-        this.drawingPoints = coordinates.map((p: number[]) => L.latLng(p[0], p[1]));
-        // ✅ FIN DE CORRECCIÓN 2
-        
-        this.drawingLayer = L.polygon(this.drawingPoints, { 
-          color: '#dc3545', // Rojo
-          weight: 3
-        }).addTo(this.map);
 
+        // Actualizar en memoria
+        this.selectedNeighborhood.boundary = boundaryJson;
+
+        // Polígono ya cerrado
+        this.isDrawing = false;
+        if (this.drawingLayer) {
+          this.drawingLayer.setStyle({ color: '#dc3545', dashArray: undefined });
+        }
       },
       error: (err) => {
         console.error(err);

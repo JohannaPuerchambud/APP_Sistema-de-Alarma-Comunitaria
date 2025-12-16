@@ -1,6 +1,6 @@
 <div class="container mt-4">
-  
-  <!-- 1. HEADER (con la nueva clase 'page-header') -->
+
+  <!-- HEADER -->
   <div class="page-header">
     <h4 class="m-0">Gestión de Usuarios</h4>
     <button class="btn btn-primary" (click)="openModal('add')">
@@ -8,44 +8,40 @@
     </button>
   </div>
 
-  <!-- 2. SEARCH BAR (con la nueva clase 'search-container') -->
+  <!-- SEARCH -->
   <div class="search-container">
-    <input 
-      type="text" 
-      class="form-control" 
-      placeholder="🔍 Buscar por nombre, email o barrio..."
-      [(ngModel)]="searchText"
-      (input)="applyFilters()">
+    <input type="text" class="form-control" placeholder="🔍 Buscar por nombre, apellido, email o barrio..."
+      [(ngModel)]="searchText" (input)="applyFilters()">
   </div>
 
-  <!-- 3. LOADING STATE (se verá mejor con los nuevos estilos) -->
   <div *ngIf="loading" class="alert alert-info">Cargando...</div>
 
-  <!-- 4. TABLE (envuelta en 'table-container') -->
+  <!-- TABLA -->
   <div class="table-container" *ngIf="!loading">
     <table class="table table-striped">
       <thead>
         <tr>
           <th>ID</th>
           <th>Nombre</th>
+          <th>Apellido</th>
           <th>Email</th>
+          <th>Teléfono</th>
           <th>Barrio</th>
           <th>Rol</th>
           <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
-        <!-- El *ngFor sigue siendo el mismo -->
         <tr *ngFor="let u of paginatedUsers">
           <td>{{ u.user_id }}</td>
           <td>{{ u.name }}</td>
+          <td>{{ u.last_name || '—' }}</td>
           <td>{{ u.email }}</td>
+          <td>{{ u.phone || '—' }}</td>
           <td>{{ u.neighborhood_name || '—' }}</td>
           <td>
-            <span [class.badge]="true" 
-                  [class.bg-primary]="u.role_id === 1"
-                  [class.bg-success]="u.role_id === 2"
-                  [class.bg-secondary]="u.role_id === 3">
+            <span [class.badge]="true" [class.bg-primary]="u.role_id === 1" [class.bg-success]="u.role_id === 2"
+              [class.bg-secondary]="u.role_id === 3">
               {{ u.role_id === 1 ? 'Admin General' : u.role_id === 2 ? 'Admin Barrio' : 'Usuario' }}
             </span>
           </td>
@@ -59,9 +55,8 @@
           </td>
         </tr>
 
-        <!-- Mensaje si no hay resultados -->
         <tr *ngIf="filteredUsers.length === 0 && !loading">
-          <td colspan="6" class="text-center" style="padding: 40px; color: #6c757d;">
+          <td colspan="8" class="text-center" style="padding: 40px; color: #6c757d;">
             <i class="bi bi-inbox" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
             No se encontraron usuarios.
           </td>
@@ -70,7 +65,7 @@
     </table>
   </div>
 
-  <!-- 5. PAGINATION (se verá mejor con los nuevos estilos) -->
+  <!-- PAGINACIÓN -->
   <nav *ngIf="totalPages > 1 && !loading" class="d-flex justify-content-center">
     <ul class="pagination">
       <li class="page-item" [class.disabled]="currentPage === 1">
@@ -87,10 +82,7 @@
 
 </div>
 
-<!-- 
-  EL MODAL NO CAMBIA:
-  Se queda igual, pero ahora será estilizado por el nuevo CSS.
--->
+<!-- MODAL -->
 <div class="modal fade" id="modalUser" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -102,26 +94,44 @@
       </div>
       <div class="modal-body">
         <form>
+          <!-- Nombre / Apellido -->
           <div class="row">
             <div class="col-md-6 mb-3">
               <label class="form-label">Nombre</label>
               <input class="form-control" [(ngModel)]="selected.name" name="name">
             </div>
             <div class="col-md-6 mb-3">
+              <label class="form-label">Apellido</label>
+              <input class="form-control" [(ngModel)]="selected.last_name" name="last_name">
+            </div>
+          </div>
+
+          <!-- Email / Teléfono -->
+          <div class="row">
+            <div class="col-md-6 mb-3">
               <label class="form-label">Email</label>
               <input class="form-control" [(ngModel)]="selected.email" name="email">
             </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Teléfono</label>
+              <input class="form-control" [(ngModel)]="selected.phone" name="phone">
+            </div>
           </div>
+
+          <!-- Contraseña / Dirección -->
           <div class="row">
             <div class="col-md-6 mb-3">
               <label class="form-label">Contraseña</label>
-              <input class="form-control" type="password" [(ngModel)]="selected.password" name="password" [placeholder]="modalMode === 'edit' ? '(Dejar en blanco para no cambiar)' : ''">
+              <input class="form-control" type="password" [(ngModel)]="selected.password" name="password"
+                [placeholder]="modalMode === 'edit' ? '(Dejar en blanco para no cambiar)' : ''">
             </div>
             <div class="col-md-6 mb-3">
               <label class="form-label">Dirección</label>
               <input class="form-control" [(ngModel)]="selected.address" name="address">
             </div>
           </div>
+
+          <!-- Barrio / Rol -->
           <div class="row">
             <div class="col-md-6 mb-3">
               <label class="form-label">Barrio</label>
@@ -132,12 +142,46 @@
             <div class="col-md-6 mb-3">
               <label class="form-label">Rol</label>
               <select class="form-select" [(ngModel)]="selected.role_id" name="role_id">
-                <option [value]="1">Admin General</option>
-                <option [value]="2">Admin Barrio</option>
-                <option [value]="3">Usuario</option>
+                <!-- Si es Admin General, ve todos los roles -->
+                <ng-container *ngIf="isAdminGeneral; else onlyUserRole">
+                  <option [value]="1">Admin General</option>
+                  <option [value]="2">Admin Barrio</option>
+                  <option [value]="3">Usuario</option>
+                </ng-container>
+
+                <!-- Si NO es Admin General (Admin Barrio), solo puede elegir Usuario -->
+                <ng-template #onlyUserRole>
+                  <option [value]="3">Usuario</option>
+                </ng-template>
               </select>
             </div>
           </div>
+
+          <!-- Minimapa para domicilio -->
+          <div class="row">
+            <div class="col-12 mb-2">
+              <label class="form-label d-block">Seleccionar domicilio en el mapa</label>
+              <small class="text-muted">
+                Haz clic sobre el mapa para fijar el domicilio del usuario.
+              </small>
+            </div>
+            <div class="col-12 mb-3">
+              <div id="home-map"></div>
+            </div>
+          </div>
+
+          <!-- Coordenadas seleccionadas (solo lectura) -->
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Latitud seleccionada</label>
+              <input class="form-control" [value]="selected.home_lat || ''" readonly>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Longitud seleccionada</label>
+              <input class="form-control" [value]="selected.home_lng || ''" readonly>
+            </div>
+          </div>
+
         </form>
       </div>
       <div class="modal-footer">

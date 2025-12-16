@@ -16,12 +16,15 @@
   </div>
 
   <div class="mt-3 d-flex justify-content-center gap-2">
-    <!-- ✅ INICIO DE CORRECCIÓN 1 (Error TS2554) -->
-    <!-- Botón para limpiar el dibujo actual (sin argumentos) -->
     <button class="btn btn-warning" (click)="clearDrawing()">
-    <!-- ✅ FIN DE CORRECCIÓN 1 -->
       <i class="bi bi-arrow-counterclockwise"></i> Limpiar Dibujo
     </button>
+
+    <!-- NUEVO BOTÓN -->
+    <button class="btn btn-secondary" (click)="finishDrawing()">
+      <i class="bi bi-check2-square"></i> Cerrar Polígono
+    </button>
+
     <button class="btn btn-success" (click)="saveBoundary()">
       <i class="bi bi-check-lg"></i> Guardar Límites
     </button>

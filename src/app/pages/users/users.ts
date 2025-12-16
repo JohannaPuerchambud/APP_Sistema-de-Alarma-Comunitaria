@@ -3,52 +3,57 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserService } from '../../core/services/user';
 import { NeighborhoodService } from '../../core/services/neighborhood';
+import { AuthService } from '../../core/auth/auth.service';
+import * as L from 'leaflet';
 
 declare var bootstrap: any;
 
 @Component({
   selector: 'app-users',
   standalone: true,
-  // 1. Imports limpios (sin AG-Grid)
-  imports: [CommonModule, FormsModule], 
+  imports: [CommonModule, FormsModule],
   templateUrl: './users.html',
   styleUrl: './users.css'
 })
 export class Users implements OnInit {
-  
-  // --- Estado del Componente ---
+
   loading = false;
   neighborhoods: any[] = [];
   selected: any = {};
   modalMode: 'add' | 'edit' = 'add';
 
-  // --- Listas para la tabla ---
-  public masterUserList: any[] = []; // Lista original de la API
-  public filteredUsers: any[] = [];  // Lista después de aplicar el filtro de búsqueda
-  public paginatedUsers: any[] = []; // Lista que se muestra en la tabla (la "rebanada")
+  public masterUserList: any[] = [];
+  public filteredUsers: any[] = [];
+  public paginatedUsers: any[] = [];
 
-  // --- Estado de Paginación y Búsqueda ---
   public searchText: string = '';
   public currentPage: number = 1;
-  public itemsPerPage: number = 3; // Puedes cambiar esto (ej. 5, 10, 20)
+  public itemsPerPage: number = 3;
+
+  private homeMap: L.Map | null = null;
+  private homeMarker: L.Marker | null = null;
 
   constructor(
     private userService: UserService,
-    private neighborhoodService: NeighborhoodService
+    private neighborhoodService: NeighborhoodService,
+    private auth: AuthService
   ) {}
+
+  get isAdminGeneral(): boolean {
+    return this.auth.isAdminGeneral();
+  }
 
   ngOnInit(): void {
     this.load();
-    this.loadNeighborhoods(); // Cargar barrios para el modal
+    this.loadNeighborhoods();
   }
 
-  /** Carga la lista maestra de usuarios desde la API */
   load() {
     this.loading = true;
     this.userService.getAll().subscribe({
       next: (res) => {
-        this.masterUserList = res; // Guardar la lista maestra
-        this.applyFilters(); // Aplicar filtros y paginación
+        this.masterUserList = res;
+        this.applyFilters();
         this.loading = false;
       },
       error: (err) => {
@@ -58,7 +63,6 @@ export class Users implements OnInit {
     });
   }
 
-  /** Carga los barrios (para el modal) */
   loadNeighborhoods() {
     this.neighborhoodService.getAll().subscribe({
       next: (res) => this.neighborhoods = res,
@@ -66,67 +70,173 @@ export class Users implements OnInit {
     });
   }
 
-  // --- Lógica de Filtro y Paginación ---
-
-  /** Se llama cada vez que el usuario escribe en la barra de búsqueda */
   applyFilters() {
     const st = this.searchText.toLowerCase();
 
-    // 1. Filtrar la lista maestra
-    this.filteredUsers = this.masterUserList.filter(u => 
-      u.name.toLowerCase().includes(st) || 
-      u.email.toLowerCase().includes(st) ||
+    this.filteredUsers = this.masterUserList.filter(u =>
+      (u.name && u.name.toLowerCase().includes(st)) ||
+      (u.last_name && u.last_name.toLowerCase().includes(st)) ||
+      (u.email && u.email.toLowerCase().includes(st)) ||
       (u.neighborhood_name && u.neighborhood_name.toLowerCase().includes(st))
     );
 
-    // 2. Resetear a la página 1 (siempre que se filtra)
     this.currentPage = 1;
-
-    // 3. Actualizar los datos de la tabla
     this.updatePaginatedUsers();
   }
 
-  /** "Rebana" la lista filtrada para mostrar solo la página actual */
   updatePaginatedUsers() {
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const endIndex = startIndex + this.itemsPerPage;
     this.paginatedUsers = this.filteredUsers.slice(startIndex, endIndex);
   }
 
-  /** Cambia la página actual y actualiza la tabla */
   changePage(page: number) {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
     this.updatePaginatedUsers();
   }
 
-  // --- Getters para la UI de Paginación ---
-
-  /** Calcula el número total de páginas */
   get totalPages(): number {
-    return Math.ceil(this.filteredUsers.length / this.itemsPerPage);
+    const total = Math.ceil(this.filteredUsers.length / this.itemsPerPage);
+    return total || 1;
   }
 
-  /** Genera un array de números para los botones de la paginación */
   get pageNumbers(): number[] {
-    return Array(this.totalPages).fill(0).map((x, i) => i + 1);
+    const total = this.totalPages;
+    return Array(total).fill(0).map((x, i) => i + 1);
   }
 
-
-  // --- Lógica del Modal (sin cambios, pero 'load' refresca la tabla) ---
+  // ---------------- MODAL + MAPA ----------------
 
   openModal(mode: 'add' | 'edit', item?: any) {
     this.modalMode = mode;
-    this.selected = mode === 'edit' ? { ...item } : { name: '', email: '', password: '', address: '', role_id: 3, neighborhood_id: null };
-    if (this.modalMode === 'edit') delete this.selected.password;
 
-    const modal = document.getElementById('modalUser')!;
-    const bsModal = new bootstrap.Modal(modal);
+    if (mode === 'edit' && item) {
+      this.selected = { ...item };
+      delete this.selected.password;
+    } else {
+      this.selected = {
+        user_id: null,
+        name: '',
+        last_name: '',
+        email: '',
+        password: '',
+        address: '',
+        phone: '',
+        home_lat: null,
+        home_lng: null,
+        role_id: 3,
+        neighborhood_id: this.neighborhoods.length === 1
+          ? this.neighborhoods[0].neighborhood_id
+          : null
+      };
+    }
+
+    const modalEl = document.getElementById('modalUser')!;
+    const bsModal = new bootstrap.Modal(modalEl);
+
+    // ✅ Caso ideal: bootstrap dispara shown.bs.modal
+    const onShown = () => {
+      this.mountHomeMapSafely();
+      modalEl.removeEventListener('shown.bs.modal', onShown as any);
+    };
+    modalEl.addEventListener('shown.bs.modal', onShown as any);
+
     bsModal.show();
+
+    // ✅ Fallback: si por cualquier cosa no dispara shown.bs.modal, igual intentamos
+    requestAnimationFrame(() => {
+      setTimeout(() => this.mountHomeMapSafely(), 400);
+    });
+  }
+
+  /** Crea el mapa y fuerza a Leaflet a recalcular tamaño */
+  private mountHomeMapSafely() {
+    // Si el modal no está visible aún, no hacemos nada
+    const modalEl = document.getElementById('modalUser');
+    if (!modalEl) return;
+
+    // Si el mapa container no existe, no hacemos nada
+    const mapDiv = document.getElementById('home-map');
+    if (!mapDiv) return;
+
+    // Si está oculto (display none), Leaflet se rompe con width/height 0
+    // Bootstrap usa clases, pero esto ayuda a evitar inicializar muy pronto
+    const rect = mapDiv.getBoundingClientRect();
+    const looksHidden = rect.width === 0 || rect.height === 0;
+
+    // Inicializa el mapa (si no existe o si estaba roto)
+    this.initHomeMap();
+
+    // Forzar a Leaflet recalcular tamaño cuando ya está visible
+    setTimeout(() => {
+      this.homeMap?.invalidateSize();
+
+      // Centrar si ya hay coords
+      if (this.selected.home_lat != null && this.selected.home_lng != null) {
+        this.homeMap?.setView([this.selected.home_lat, this.selected.home_lng], 16);
+      }
+    }, looksHidden ? 250 : 50);
+  }
+
+  private initHomeMap() {
+    const mapDiv = document.getElementById('home-map');
+    if (!mapDiv) return;
+
+    // destruir mapa anterior (si abres modal varias veces)
+    if (this.homeMap) {
+      this.homeMap.remove();
+      this.homeMap = null;
+      this.homeMarker = null;
+    }
+
+    const defaultCenter: L.LatLngExpression = [0.3517, -78.1223]; // Ibarra
+    const startCenter: L.LatLngExpression =
+      (this.selected.home_lat != null && this.selected.home_lng != null)
+        ? [this.selected.home_lat, this.selected.home_lng]
+        : defaultCenter;
+
+    this.homeMap = L.map('home-map', { zoomControl: true }).setView(startCenter, 16);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(this.homeMap);
+
+    // icon fix
+    const iconDefault = L.icon({
+      iconRetinaUrl: 'assets/marker-icon-2x.png',
+      iconUrl: 'assets/marker-icon.png',
+      shadowUrl: 'assets/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      tooltipAnchor: [16, -28],
+      shadowSize: [41, 41]
+    });
+    (L.Marker.prototype as any).options.icon = iconDefault;
+
+    if (this.selected.home_lat != null && this.selected.home_lng != null) {
+      this.homeMarker = L.marker(startCenter).addTo(this.homeMap);
+    }
+
+    this.homeMap.on('click', (e: L.LeafletMouseEvent) => {
+      const { lat, lng } = e.latlng;
+
+      this.selected.home_lat = lat;
+      this.selected.home_lng = lng;
+
+      if (!this.homeMarker) {
+        this.homeMarker = L.marker([lat, lng]).addTo(this.homeMap!);
+      } else {
+        this.homeMarker.setLatLng([lat, lng]);
+      }
+    });
   }
 
   save() {
     const data = { ...this.selected };
+
     if (this.modalMode === 'edit' && !data.password) {
       delete data.password;
     }
@@ -136,9 +246,9 @@ export class Users implements OnInit {
       : this.userService.update(this.selected.user_id, data);
 
     serviceCall.subscribe({
-      next: () => { 
-        this.load(); // Vuelve a cargar la lista maestra
-        this.closeModal(); 
+      next: () => {
+        this.load();
+        this.closeModal();
       },
       error: (err) => console.error(err)
     });
@@ -147,15 +257,21 @@ export class Users implements OnInit {
   remove(id: number) {
     if (confirm('¿Eliminar este usuario?')) {
       this.userService.delete(id).subscribe({
-        next: () => this.load(), // Vuelve a cargar la lista maestra
+        next: () => this.load(),
         error: (err) => console.error(err)
       });
     }
   }
 
   closeModal() {
-    const modal = document.getElementById('modalUser')!;
-    const bsModal = bootstrap.Modal.getInstance(modal);
+    const modalEl = document.getElementById('modalUser')!;
+    const bsModal = bootstrap.Modal.getInstance(modalEl);
     bsModal?.hide();
+
+    if (this.homeMap) {
+      this.homeMap.remove();
+      this.homeMap = null;
+      this.homeMarker = null;
+    }
   }
 }
