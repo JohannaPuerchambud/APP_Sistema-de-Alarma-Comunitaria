@@ -6,11 +6,7 @@
   <div class="row align-items-center">
     <div class="col-md-6">
       <label class="form-label">Seleccionar barrio para centrar:</label>
-      <!-- 
-        AQUÍ ESTÁ LA CORRECCIÓN:
-        Cambiamos (change)="selectNeighborhood($event)"
-        POR (change)="onSelectNeighborhood($event)"
-      -->
+  
       <select class="form-select" (change)="onSelectNeighborhood($event)">
         <option value="0">-- Ver Todos los Barrios --</option>
         <option *ngFor="let n of neighborhoods" [value]="n.neighborhood_id">{{ n.name }}</option>

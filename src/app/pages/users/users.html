@@ -92,8 +92,10 @@
         </h5>
         <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
       </div>
+
       <div class="modal-body">
         <form>
+
           <!-- Nombre / Apellido -->
           <div class="row">
             <div class="col-md-6 mb-3">
@@ -142,14 +144,12 @@
             <div class="col-md-6 mb-3">
               <label class="form-label">Rol</label>
               <select class="form-select" [(ngModel)]="selected.role_id" name="role_id">
-                <!-- Si es Admin General, ve todos los roles -->
                 <ng-container *ngIf="isAdminGeneral; else onlyUserRole">
                   <option [value]="1">Admin General</option>
                   <option [value]="2">Admin Barrio</option>
                   <option [value]="3">Usuario</option>
                 </ng-container>
 
-                <!-- Si NO es Admin General (Admin Barrio), solo puede elegir Usuario -->
                 <ng-template #onlyUserRole>
                   <option [value]="3">Usuario</option>
                 </ng-template>
@@ -160,11 +160,41 @@
           <!-- Minimapa para domicilio -->
           <div class="row">
             <div class="col-12 mb-2">
-              <label class="form-label d-block">Seleccionar domicilio en el mapa</label>
-              <small class="text-muted">
-                Haz clic sobre el mapa para fijar el domicilio del usuario.
-              </small>
+              <label class="form-label d-block">Buscar y seleccionar domicilio en el mapa</label>
             </div>
+
+            <!-- ⭐ Buscador de dirección -->
+            <div class="col-12 mb-2">
+              <div class="input-group">
+                <input
+                  class="form-control"
+                  placeholder="Ej: Av. Atahualpa y Bolívar, Ibarra"
+                  [(ngModel)]="addressQuery"
+                  name="addressQuery"
+                  (keydown.enter)="searchAddress(); $event.preventDefault()"
+                />
+                <button
+                  class="btn btn-outline-primary"
+                  type="button"
+                  (click)="searchAddress()"
+                  [disabled]="geoLoading">
+                  <i class="bi bi-search"></i>
+                </button>
+              </div>
+
+              <small class="text-muted" *ngIf="geoLoading">Buscando...</small>
+
+              <!-- Resultados -->
+              <div *ngIf="geoResults.length" class="mt-2">
+                <select class="form-select" (change)="pickGeocodeResult($event)">
+                  <option value="">-- Selecciona un resultado --</option>
+                  <option *ngFor="let r of geoResults; let i = index" [value]="i">
+                    {{ r.display_name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
             <div class="col-12 mb-3">
               <div id="home-map"></div>
             </div>
@@ -184,6 +214,7 @@
 
         </form>
       </div>
+
       <div class="modal-footer">
         <button class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
         <button class="btn btn-primary" (click)="save()">

@@ -5,6 +5,8 @@ import { UserService } from '../../core/services/user';
 import { NeighborhoodService } from '../../core/services/neighborhood';
 import { AuthService } from '../../core/auth/auth.service';
 import * as L from 'leaflet';
+import { HttpClient } from '@angular/common/http';
+
 
 declare var bootstrap: any;
 
@@ -33,11 +35,20 @@ export class Users implements OnInit {
   private homeMap: L.Map | null = null;
   private homeMarker: L.Marker | null = null;
 
+  // =========================
+  //  ⭐ BUSCADOR DE DOMICILIO
+  // =========================
+  addressQuery: string = '';
+  geoLoading: boolean = false;
+  geoResults: any[] = [];
+
   constructor(
     private userService: UserService,
     private neighborhoodService: NeighborhoodService,
-    private auth: AuthService
-  ) {}
+    private auth: AuthService,
+    private http: HttpClient
+
+  ) { }
 
   get isAdminGeneral(): boolean {
     return this.auth.isAdminGeneral();
@@ -114,6 +125,9 @@ export class Users implements OnInit {
     if (mode === 'edit' && item) {
       this.selected = { ...item };
       delete this.selected.password;
+
+      // ⭐ prellenar buscador con dirección si existe
+      this.addressQuery = this.selected.address || '';
     } else {
       this.selected = {
         user_id: null,
@@ -130,7 +144,14 @@ export class Users implements OnInit {
           ? this.neighborhoods[0].neighborhood_id
           : null
       };
+
+      // ⭐ limpiar buscador
+      this.addressQuery = '';
     }
+
+    // ⭐ limpiar resultados del buscador cada vez que abres modal
+    this.geoResults = [];
+    this.geoLoading = false;
 
     const modalEl = document.getElementById('modalUser')!;
     const bsModal = new bootstrap.Modal(modalEl);
@@ -144,7 +165,7 @@ export class Users implements OnInit {
 
     bsModal.show();
 
-    // ✅ Fallback: si por cualquier cosa no dispara shown.bs.modal, igual intentamos
+    // ✅ Fallback
     requestAnimationFrame(() => {
       setTimeout(() => this.mountHomeMapSafely(), 400);
     });
@@ -152,27 +173,17 @@ export class Users implements OnInit {
 
   /** Crea el mapa y fuerza a Leaflet a recalcular tamaño */
   private mountHomeMapSafely() {
-    // Si el modal no está visible aún, no hacemos nada
-    const modalEl = document.getElementById('modalUser');
-    if (!modalEl) return;
-
-    // Si el mapa container no existe, no hacemos nada
     const mapDiv = document.getElementById('home-map');
     if (!mapDiv) return;
 
-    // Si está oculto (display none), Leaflet se rompe con width/height 0
-    // Bootstrap usa clases, pero esto ayuda a evitar inicializar muy pronto
     const rect = mapDiv.getBoundingClientRect();
     const looksHidden = rect.width === 0 || rect.height === 0;
 
-    // Inicializa el mapa (si no existe o si estaba roto)
     this.initHomeMap();
 
-    // Forzar a Leaflet recalcular tamaño cuando ya está visible
     setTimeout(() => {
       this.homeMap?.invalidateSize();
 
-      // Centrar si ya hay coords
       if (this.selected.home_lat != null && this.selected.home_lng != null) {
         this.homeMap?.setView([this.selected.home_lat, this.selected.home_lng], 16);
       }
@@ -183,7 +194,6 @@ export class Users implements OnInit {
     const mapDiv = document.getElementById('home-map');
     if (!mapDiv) return;
 
-    // destruir mapa anterior (si abres modal varias veces)
     if (this.homeMap) {
       this.homeMap.remove();
       this.homeMap = null;
@@ -203,11 +213,10 @@ export class Users implements OnInit {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(this.homeMap);
 
-    // icon fix
     const iconDefault = L.icon({
-      iconRetinaUrl: 'assets/marker-icon-2x.png',
-      iconUrl: 'assets/marker-icon.png',
-      shadowUrl: 'assets/marker-shadow.png',
+      iconRetinaUrl: '/assets/marker-icon-2x.png',
+      iconUrl: '/assets/marker-icon.png',
+      shadowUrl: '/assets/marker-shadow.png',
       iconSize: [25, 41],
       iconAnchor: [12, 41],
       popupAnchor: [1, -34],
@@ -220,6 +229,7 @@ export class Users implements OnInit {
       this.homeMarker = L.marker(startCenter).addTo(this.homeMap);
     }
 
+    // Click en mapa: fija domicilio
     this.homeMap.on('click', (e: L.LeafletMouseEvent) => {
       const { lat, lng } = e.latlng;
 
@@ -233,6 +243,71 @@ export class Users implements OnInit {
       }
     });
   }
+
+  // =========================
+  //  BUSCADOR DE DOMICILIO
+  // =========================
+
+  searchAddress() {
+    const q = (this.addressQuery || '').trim();
+    if (!q) return;
+
+    this.geoLoading = true;
+    this.geoResults = [];
+
+    this.http.get<any[]>(`http://localhost:4000/api/geocode?q=${encodeURIComponent(q)}`)
+      .subscribe({
+        next: (data) => {
+          this.geoResults = Array.isArray(data) ? data : [];
+
+          if (this.geoResults.length === 1) {
+            this.applyGeocode(this.geoResults[0]);
+          }
+
+          if (this.geoResults.length === 0) {
+            alert('No se encontraron resultados. Prueba con más detalle (ej: “Calle + número + ciudad”).');
+          }
+
+          this.geoLoading = false;
+        },
+        error: (err) => {
+          console.error(err);
+          alert('No se pudo buscar la dirección.');
+          this.geoLoading = false;
+        }
+      });
+  }
+
+
+  pickGeocodeResult(event: any) {
+    const idx = +event.target.value;
+    if (Number.isNaN(idx) || !this.geoResults[idx]) return;
+    this.applyGeocode(this.geoResults[idx]);
+  }
+
+  private applyGeocode(r: any) {
+    const lat = parseFloat(r.lat);
+    const lng = parseFloat(r.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    // Guardar coordenadas en el modelo (igual que cuando haces click)
+    this.selected.home_lat = lat;
+    this.selected.home_lng = lng;
+
+    // Asegurar mapa listo
+    this.mountHomeMapSafely();
+
+    // Mover mapa + marcador
+    this.homeMap?.setView([lat, lng], 17);
+
+    if (!this.homeMarker) {
+      this.homeMarker = L.marker([lat, lng]).addTo(this.homeMap!);
+    } else {
+      this.homeMarker.setLatLng([lat, lng]);
+    }
+  }
+
+  // ---------------- CRUD ----------------
 
   save() {
     const data = { ...this.selected };
@@ -273,5 +348,9 @@ export class Users implements OnInit {
       this.homeMap = null;
       this.homeMarker = null;
     }
+
+    // ⭐ limpiar buscador al cerrar
+    this.geoResults = [];
+    this.geoLoading = false;
   }
 }
