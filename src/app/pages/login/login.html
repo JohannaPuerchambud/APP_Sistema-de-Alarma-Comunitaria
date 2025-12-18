@@ -4,8 +4,9 @@
     <!-- Panel izquierdo -->
     <div class="left-panel">
       <svg class="shield-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path d="M12 2L3 7V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V7L12 2Z" fill="white" stroke="white" stroke-width="1.5"/>
-        <path d="M12 8V12M12 16H12.01" stroke="#667eea" stroke-width="2" stroke-linecap="round"/>
+        <path d="M12 2L3 7V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V7L12 2Z" fill="white" stroke="white"
+          stroke-width="1.5" />
+        <path d="M12 8V12M12 16H12.01" stroke="#667eea" stroke-width="2" stroke-linecap="round" />
       </svg>
 
       <h1>Sistema de Alarma Comunitaria</h1>
@@ -14,20 +15,25 @@
       <div class="features" aria-hidden="true">
         <div class="feature-item">
           <svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path
+              d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+              stroke="white" stroke-width="2" stroke-linecap="round" />
           </svg>
           Reportes en tiempo real
         </div>
         <div class="feature-item">
           <svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
-            <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13M16 3.13C16.8604 3.3503 17.623 3.8507 18.1676 4.55231C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88M13 7C13 9.20914 11.2091 11 9 11C6.79086 11 5 9.20914 5 7C5 4.79086 6.79086 3 9 3C11.2091 3 13 4.79086 13 7Z" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path
+              d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13M16 3.13C16.8604 3.3503 17.623 3.8507 18.1676 4.55231C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88M13 7C13 9.20914 11.2091 11 9 11C6.79086 11 5 9.20914 5 7C5 4.79086 6.79086 3 9 3C11.2091 3 13 4.79086 13 7Z"
+              stroke="white" stroke-width="2" stroke-linecap="round" />
           </svg>
           Chat comunitario
         </div>
         <div class="feature-item">
           <svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2C8.13401 2 5 5.13401 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13401 15.866 2 12 2Z" stroke="white" stroke-width="2"/>
-            <circle cx="12" cy="9" r="2.5" stroke="white" stroke-width="2"/>
+            <path d="M12 2C8.13401 2 5 5.13401 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13401 15.866 2 12 2Z"
+              stroke="white" stroke-width="2" />
+            <circle cx="12" cy="9" r="2.5" stroke="white" stroke-width="2" />
           </svg>
           Geolocalización precisa
         </div>
@@ -41,45 +47,54 @@
         <p>Accede al panel de administración</p>
       </div>
 
-      <!-- Mantengo tu funcionalidad: (ngSubmit), [(ngModel)], [disabled]="loading" -->
-      <form (ngSubmit)="onLogin()">
+      <form #f="ngForm" (ngSubmit)="onLogin()">
+
         <div class="form-group">
           <label class="form-label" for="email">Correo Electrónico</label>
           <div class="input-wrapper">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="2"/>
-              <path d="M22 6L12 13L2 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z"
+                stroke="currentColor" stroke-width="2" />
+              <path d="M22 6L12 13L2 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             </svg>
-            <input
-              id="email"
-              class="form-control"
-              type="email"
-              [(ngModel)]="email"
-              name="email"
-              placeholder="usuario@ejemplo.com"
-              required />
+            <input id="email" class="form-control" type="email" [(ngModel)]="email" name="email"
+              placeholder="usuario@ejemplo.com" required />
           </div>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="password">Contraseña</label>
-          <div class="input-wrapper">
+
+          <!-- ✅ input + ojito -->
+          <div class="input-wrapper" style="display:flex; align-items:center; gap:8px;">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M19 11H5C3.89543 11 3 11.8954 3 13V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V13C21 11.8954 20.1046 11 19 11Z" stroke="currentColor" stroke-width="2"/>
-              <path d="M7 11V7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path
+                d="M19 11H5C3.89543 11 3 11.8954 3 13V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V13C21 11.8954 20.1046 11 19 11Z"
+                stroke="currentColor" stroke-width="2" />
+              <path
+                d="M7 11V7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7V11"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             </svg>
-            <input
-              id="password"
-              class="form-control"
-              type="password"
-              [(ngModel)]="password"
-              name="password"
-              placeholder="••••••••"
-              required />
+
+            <input id="password" class="form-control" [type]="showPassword ? 'text' : 'password'" [(ngModel)]="password"
+              name="password" placeholder="••••••••" required minlength="8" pattern="^(?=.*[A-Za-z])(?=.*\\d).{8,}$"
+              #pwd="ngModel" />
+
+            <button type="button" class="btn btn-outline-secondary" (click)="showPassword = !showPassword"
+              style="white-space:nowrap;">
+              <i class="bi" [ngClass]="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+            </button>
           </div>
+
+          <small class="text-danger" *ngIf="pwd.invalid && (pwd.dirty || pwd.touched)">
+          </small>
         </div>
 
-        <button class="btn-login" type="submit" [disabled]="loading">
+        <div *ngIf="errorMsg" class="text-danger" style="margin-top: 8px;">
+          {{ errorMsg }}
+        </div>
+
+        <button class="btn-login" type="submit" []="loading || f.invalid">
           {{ loading ? 'Ingresando...' : 'Ingresar' }}
         </button>
       </form>

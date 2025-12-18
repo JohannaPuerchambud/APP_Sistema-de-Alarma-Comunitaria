@@ -35,12 +35,12 @@ export class Users implements OnInit {
   private homeMap: L.Map | null = null;
   private homeMarker: L.Marker | null = null;
 
-  // =========================
-  //  ⭐ BUSCADOR DE DOMICILIO
-  // =========================
   addressQuery: string = '';
   geoLoading: boolean = false;
   geoResults: any[] = [];
+  showUserPassword = false;
+  passwordPattern = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+
 
   constructor(
     private userService: UserService,
@@ -117,7 +117,6 @@ export class Users implements OnInit {
     return Array(total).fill(0).map((x, i) => i + 1);
   }
 
-  // ---------------- MODAL + MAPA ----------------
 
   openModal(mode: 'add' | 'edit', item?: any) {
     this.modalMode = mode;
@@ -126,7 +125,6 @@ export class Users implements OnInit {
       this.selected = { ...item };
       delete this.selected.password;
 
-      // ⭐ prellenar buscador con dirección si existe
       this.addressQuery = this.selected.address || '';
     } else {
       this.selected = {
@@ -145,18 +143,16 @@ export class Users implements OnInit {
           : null
       };
 
-      // ⭐ limpiar buscador
       this.addressQuery = '';
     }
 
-    // ⭐ limpiar resultados del buscador cada vez que abres modal
     this.geoResults = [];
     this.geoLoading = false;
+    this.showUserPassword = false;
 
     const modalEl = document.getElementById('modalUser')!;
     const bsModal = new bootstrap.Modal(modalEl);
 
-    // ✅ Caso ideal: bootstrap dispara shown.bs.modal
     const onShown = () => {
       this.mountHomeMapSafely();
       modalEl.removeEventListener('shown.bs.modal', onShown as any);
@@ -165,13 +161,11 @@ export class Users implements OnInit {
 
     bsModal.show();
 
-    // ✅ Fallback
     requestAnimationFrame(() => {
       setTimeout(() => this.mountHomeMapSafely(), 400);
     });
   }
 
-  /** Crea el mapa y fuerza a Leaflet a recalcular tamaño */
   private mountHomeMapSafely() {
     const mapDiv = document.getElementById('home-map');
     if (!mapDiv) return;
@@ -229,7 +223,6 @@ export class Users implements OnInit {
       this.homeMarker = L.marker(startCenter).addTo(this.homeMap);
     }
 
-    // Click en mapa: fija domicilio
     this.homeMap.on('click', (e: L.LeafletMouseEvent) => {
       const { lat, lng } = e.latlng;
 
@@ -243,10 +236,6 @@ export class Users implements OnInit {
       }
     });
   }
-
-  // =========================
-  //  BUSCADOR DE DOMICILIO
-  // =========================
 
   searchAddress() {
     const q = (this.addressQuery || '').trim();
@@ -290,14 +279,11 @@ export class Users implements OnInit {
     const lng = parseFloat(r.lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
-    // Guardar coordenadas en el modelo (igual que cuando haces click)
     this.selected.home_lat = lat;
     this.selected.home_lng = lng;
 
-    // Asegurar mapa listo
     this.mountHomeMapSafely();
 
-    // Mover mapa + marcador
     this.homeMap?.setView([lat, lng], 17);
 
     if (!this.homeMarker) {
@@ -307,7 +293,6 @@ export class Users implements OnInit {
     }
   }
 
-  // ---------------- CRUD ----------------
 
   save() {
     const data = { ...this.selected };
@@ -349,7 +334,6 @@ export class Users implements OnInit {
       this.homeMarker = null;
     }
 
-    // ⭐ limpiar buscador al cerrar
     this.geoResults = [];
     this.geoLoading = false;
   }

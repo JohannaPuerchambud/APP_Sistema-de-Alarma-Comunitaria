@@ -124,9 +124,26 @@
           <div class="row">
             <div class="col-md-6 mb-3">
               <label class="form-label">Contraseña</label>
-              <input class="form-control" type="password" [(ngModel)]="selected.password" name="password"
-                [placeholder]="modalMode === 'edit' ? '(Dejar en blanco para no cambiar)' : ''">
+
+              <div class="input-group mb-1">
+                <input class="form-control" [type]="showUserPassword ? 'text' : 'password'"
+                  [(ngModel)]="selected.password" name="password" [required]="modalMode === 'add'"
+                  [attr.minlength]="modalMode === 'add' ? 8 : null"
+                  [attr.pattern]="modalMode === 'add' ? '^(?=.*[A-Za-z])(?=.*\\d).{8,}$' : null" #userPwd="ngModel"
+                  [placeholder]="modalMode === 'edit' ? '(Dejar en blanco para no cambiar)' : 'Mínimo 8, letras y números'" />
+
+                <button class="btn btn-outline-secondary" type="button" (click)="showUserPassword = !showUserPassword">
+                  <i class="bi" [ngClass]="showUserPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+                </button>
+              </div>
+
+              <!-- ✅ Validación SOLO cuando es add (en edit es opcional) -->
+              <small class="text-danger"
+                *ngIf="modalMode === 'add' && userPwd.invalid && (userPwd.dirty || userPwd.touched)">
+                La contraseña debe tener mínimo 8 caracteres e incluir letras y números.
+              </small>
             </div>
+
             <div class="col-md-6 mb-3">
               <label class="form-label">Dirección</label>
               <input class="form-control" [(ngModel)]="selected.address" name="address">
@@ -166,18 +183,9 @@
             <!-- ⭐ Buscador de dirección -->
             <div class="col-12 mb-2">
               <div class="input-group">
-                <input
-                  class="form-control"
-                  placeholder="Ej: Av. Atahualpa y Bolívar, Ibarra"
-                  [(ngModel)]="addressQuery"
-                  name="addressQuery"
-                  (keydown.enter)="searchAddress(); $event.preventDefault()"
-                />
-                <button
-                  class="btn btn-outline-primary"
-                  type="button"
-                  (click)="searchAddress()"
-                  [disabled]="geoLoading">
+                <input class="form-control" placeholder="Ej: Av. Atahualpa y Bolívar, Ibarra" [(ngModel)]="addressQuery"
+                  name="addressQuery" (keydown.enter)="searchAddress(); $event.preventDefault()" />
+                <button class="btn btn-outline-primary" type="button" (click)="searchAddress()" [disabled]="geoLoading">
                   <i class="bi bi-search"></i>
                 </button>
               </div>
@@ -217,7 +225,8 @@
 
       <div class="modal-footer">
         <button class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
-        <button class="btn btn-primary" (click)="save()">
+        <button class="btn btn-primary" (click)="save()"
+          [disabled]="modalMode === 'add' && (!passwordPattern.test(selected.password || ''))">
           {{ modalMode === 'add' ? 'Guardar' : 'Actualizar' }}
         </button>
       </div>

@@ -4,12 +4,12 @@
   </div>
 
   <div class="search-container">
-    <label for="neighborhood" class="form-label">Seleccionar barrio para editar:</label>
+    <label for="neighborhood" class="form-label">Seleccionar barrio para crear o editar polígono:</label>
     <select class="form-select" (change)="selectNeighborhood($event)">
       <option value="">-- Selecciona un barrio --</option>
       <option *ngFor="let n of neighborhoods" [value]="n.neighborhood_id">{{ n.name }}</option>
     </select>
-  </div>
+  </div> 
 
   <div class="table-container">
     <div id="map"></div>
