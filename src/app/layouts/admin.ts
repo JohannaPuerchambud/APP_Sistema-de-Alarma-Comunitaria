@@ -20,6 +20,7 @@ import { AuthService } from '../core/auth/auth.service';
 export class AdminLayout implements OnInit {
   userName: string = '';
   userRole: string = '';
+  userLastName: string = '';
 
   constructor(
     private router: Router,
@@ -31,21 +32,24 @@ export class AdminLayout implements OnInit {
   }
 
   loadUserData() {
-    const claims = this.auth.claims();
+  const claims = this.auth.claims();
 
-    if (!claims) {
-      this.userName = 'Usuario';
-      this.userRole = '';
-      return;
-    }
-
-    this.userName = claims.name || 'Usuario';
-
-    const role = claims.role;
-    if (role === 1)      this.userRole = 'Admin General';
-    else if (role === 2) this.userRole = 'Admin Barrio';
-    else                 this.userRole = 'Usuario';
+  if (!claims) {
+    this.userName = 'Usuario';
+    this.userLastName = '';
+    this.userRole = '';
+    return;
   }
+
+  this.userName = claims.name || 'Usuario';
+  this.userLastName = claims.last_name || '';
+
+  const role = claims.role;
+  if (role === 1)      this.userRole = 'Admin General';
+  else if (role === 2) this.userRole = 'Admin Barrio';
+  else                 this.userRole = 'Usuario';
+}
+
 
   logout() {
     this.auth.logout();              

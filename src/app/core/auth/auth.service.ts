@@ -7,6 +7,7 @@ import { jwtDecode } from 'jwt-decode';
 type Claims = {
   id: number;
   name: string;
+  last_name: string; 
   role: 1 | 2 | 3;
   neighborhood?: number | null;
   exp?: number;
