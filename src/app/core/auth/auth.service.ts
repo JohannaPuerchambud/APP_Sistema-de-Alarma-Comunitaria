@@ -20,9 +20,6 @@ export class AuthService {
 
   constructor(private http: HttpClient) {}
 
-  // =========================
-  //  HTTP: login / register
-  // =========================
   login(data: { email: string; password: string }): Observable<any> {
     return this.http.post(`${this.apiUrl}/login`, data);
   }
@@ -31,9 +28,6 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/register`, data);
   }
 
-  // =========================
-  //  TOKEN EN LOCALSTORAGE
-  // =========================
   get token(): string | null {
     return localStorage.getItem(this.key);
   }
@@ -46,14 +40,10 @@ export class AuthService {
     }
   }
 
-  // Métodos de compatibilidad con tu código actual
   setToken(token: string) { this.token = token; }
   getToken(): string | null { return this.token; }
   clearToken() { this.token = null; }
 
-  // =========================
-  //  CLAIMS / ROLES
-  // =========================
   claims(): Claims | null {
     if (!this.token) return null;
     try {
