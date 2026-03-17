@@ -15,8 +15,7 @@ type Claims = {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private apiUrl = 'http://localhost:4000/api/auth';
-  private key = 'token';
+private apiUrl = 'https://api-sistema-de-alarma-comunitaria.onrender.com/api/auth';  private key = 'token';
 
   constructor(private http: HttpClient) {}
 

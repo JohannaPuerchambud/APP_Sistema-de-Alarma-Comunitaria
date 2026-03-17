@@ -4,8 +4,7 @@ import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class UserService {
-  private apiUrl = 'http://localhost:4000/api/users';
-
+private apiUrl = 'https://api-sistema-de-alarma-comunitaria.onrender.com/api/users';
   constructor(private http: HttpClient) {}
 
   getAll(): Observable<any[]> {
