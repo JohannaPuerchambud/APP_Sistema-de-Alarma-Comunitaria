@@ -3,8 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
 import { NeighborhoodService } from '../../core/services/neighborhood';
-import { UserService } from '../../core/services/user'; // ✅ Importamos usuarios
+import { UserService } from '../../core/services/user'; // ✅ Para traer a los habitantes
+import { HttpClient } from '@angular/common/http'; // ✅ Para contar los reportes/alarmas
 
+// Corrección de los pines de Leaflet
 const iconDefault = L.icon({
   iconRetinaUrl: 'assets/marker-icon-2x.png',
   iconUrl: 'assets/marker-icon.png',
@@ -24,16 +26,18 @@ L.Marker.prototype.options.icon = iconDefault;
 export class MapViewerComponent implements OnInit, OnDestroy {
   map!: L.Map;
   neighborhoods: any[] = [];
-  allUsers: any[] = []; // Todos los usuarios del sistema
+  allUsers: any[] = [];
+  allReports: any[] = [];
   
-  // ✅ Datos para mostrar cuando se selecciona un barrio
+  // Variables para la interfaz
   selectedNeighborhoodInfo: any = null;
   neighborhoodUsers: any[] = [];
   representative: any = null;
+  reportCount: number = 0;
 
   // Capas del mapa
   private allLayers = L.layerGroup();
-  private userMarkersLayer = L.layerGroup(); // Capa para los pines de usuarios
+  private userMarkersLayer = L.layerGroup();
   private layerMap: { [key: number]: L.Polygon } = {};
 
   private defaultStyle = { color: '#28a745', weight: 2, fillOpacity: 0.2 };
@@ -42,7 +46,8 @@ export class MapViewerComponent implements OnInit, OnDestroy {
 
   constructor(
     private neighborhoodService: NeighborhoodService,
-    private userService: UserService // ✅ Inyectamos el servicio
+    private userService: UserService,
+    private http: HttpClient
   ) {}
 
   ngOnInit(): void {
@@ -55,9 +60,9 @@ export class MapViewerComponent implements OnInit, OnDestroy {
   }
 
   initMap() {
-    this.map = L.map('map-viewer-id').setView([0.35, -78.12], 13);
+    this.map = L.map('map-viewer-id').setView([0.3517, -78.1223], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.map);
-    this.map.addLayer(this.userMarkersLayer); // Añadimos la capa de usuarios al mapa
+    this.map.addLayer(this.userMarkersLayer); // Añadimos la capa de casitas
   }
 
   loadData() {
@@ -72,9 +77,13 @@ export class MapViewerComponent implements OnInit, OnDestroy {
 
     // 2. Cargar Usuarios
     this.userService.getAll().subscribe({
-      next: (res) => {
-        this.allUsers = res;
-      },
+      next: (res) => { this.allUsers = res; },
+      error: (err) => console.error(err)
+    });
+
+    // 3. Cargar Reportes para contarlos
+    this.http.get<any[]>('http://localhost:4000/api/reports').subscribe({
+      next: (res) => { this.allReports = res; },
       error: (err) => console.error(err)
     });
   }
@@ -84,17 +93,21 @@ export class MapViewerComponent implements OnInit, OnDestroy {
     this.layerMap = {};
 
     this.neighborhoods.forEach(n => {
-      if (n.boundary && typeof n.boundary === 'string') {
+      if (n.boundary) {
         try {
-          const coords = JSON.parse(n.boundary);
-          const polygon = L.polygon(
-            coords.map((p: number[]) => L.latLng(p[0], p[1])),
-            this.defaultStyle
-          );
+          // ✅ Corrección: Parsear correctamente el polígono desde la BD
+          const coords = typeof n.boundary === 'string' ? JSON.parse(n.boundary) : n.boundary;
+          
+          if (Array.isArray(coords)) {
+            const polygon = L.polygon(
+              coords.map((p: any[]) => L.latLng(p[0], p[1])),
+              this.defaultStyle
+            );
 
-          polygon.bindPopup(`<b>${n.name}</b>`);
-          this.allLayers.addLayer(polygon);
-          this.layerMap[n.neighborhood_id] = polygon;
+            polygon.bindPopup(`<b>${n.name}</b>`);
+            this.allLayers.addLayer(polygon);
+            this.layerMap[n.neighborhood_id] = polygon;
+          }
         } catch (e) {
           console.error(`Error al cargar polígono: ${n.name}`, e);
         }
@@ -106,7 +119,7 @@ export class MapViewerComponent implements OnInit, OnDestroy {
   onSelectNeighborhood(event: any) {
     const id = +event.target.value;
 
-    // Resetear el mapa y las vistas
+    // Resetear el mapa
     this.userMarkersLayer.clearLayers();
     if (this.selectedPolygon) {
       this.selectedPolygon.setStyle(this.defaultStyle);
@@ -118,40 +131,47 @@ export class MapViewerComponent implements OnInit, OnDestroy {
       this.selectedNeighborhoodInfo = null;
       this.neighborhoodUsers = [];
       this.representative = null;
-      this.map.setView([0.35, -78.12], 13);
+      this.reportCount = 0;
+      this.map.setView([0.3517, -78.1223], 13);
+      setTimeout(() => this.map.invalidateSize(), 300);
       return;
     }
 
-    // ✅ 1. Buscar la info del barrio
+    // ✅ 1. Buscar info del barrio
     this.selectedNeighborhoodInfo = this.neighborhoods.find(n => n.neighborhood_id === id);
 
-    // ✅ 2. Filtrar los usuarios que pertenecen a este barrio
+    // ✅ 2. Filtrar habitantes
     this.neighborhoodUsers = this.allUsers.filter(u => u.neighborhood_id === id);
 
-    // ✅ 3. Encontrar al representante (Usuario con Rol 2 de este barrio)
+    // ✅ 3. Encontrar al representante
     this.representative = this.neighborhoodUsers.find(u => u.role_id === 2);
 
-    // ✅ 4. Dibujar los pines de los usuarios en el mapa
+    // ✅ 4. Contar la cantidad de reportes (alarmas) de este barrio
+    this.reportCount = this.allReports.filter(r => r.neighborhood_id === id).length;
+
+    // ✅ 5. Dibujar pines de usuarios en el mapa
     this.neighborhoodUsers.forEach(u => {
-      if (u.home_lat && u.home_lng) {
+      if (u.home_lat && u.home_lng && !isNaN(u.home_lat)) {
         const marker = L.marker([u.home_lat, u.home_lng]);
         marker.bindPopup(`
           <strong>${u.name} ${u.last_name || ''}</strong><br>
-          📞 ${u.phone || 'Sin teléfono'}<br>
-          🏠 ${u.address || 'Sin dirección'}<br>
-          <span style="font-size:10px; color:gray;">${u.role_id === 2 ? 'Representante' : 'Usuario'}</span>
+          <span style="font-size:10px; color:gray;">${u.role_id === 2 ? 'Representante' : 'Habitante'}</span>
         `);
         this.userMarkersLayer.addLayer(marker);
       }
     });
 
-    // 5. Resaltar el polígono del barrio y hacer zoom
+    // ✅ 6. Resaltar el polígono y hacer ZOOM
     if (this.layerMap[id]) {
       const polygon = this.layerMap[id];
       polygon.setStyle(this.highlightStyle);
       polygon.bringToFront();
       this.selectedPolygon = polygon;
+      
       this.map.fitBounds(polygon.getBounds());
     }
+
+    // Forzar actualización visual del mapa por el cambio de tamaño
+    setTimeout(() => this.map.invalidateSize(), 300);
   }
 }

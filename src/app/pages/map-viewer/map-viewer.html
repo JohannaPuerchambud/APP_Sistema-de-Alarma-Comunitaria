@@ -13,7 +13,7 @@
         </select>
       </div>
       <div class="col-md-6 text-muted">
-        <small>Seleccione un barrio para ver su delimitación, el nombre del representante, la información de la alarma y la ubicación exacta de sus usuarios en el mapa.</small>
+        <small>Seleccione un barrio para ver su delimitación, el representante, la cantidad de reportes (alarmas) y los habitantes en el mapa.</small>
       </div>
     </div>
   </div>
@@ -40,55 +40,48 @@
     <div class="col-md-4">
       <div class="card shadow-sm" style="border-left: 4px solid #dc3545;">
         <div class="card-body text-center">
-          <h6 class="text-danger text-uppercase mb-1" style="font-weight: 600; font-size: 13px;">Número de Alarma</h6>
-          <h5 class="font-weight-bold mb-0">{{ selectedNeighborhoodInfo.alarm_number || 'No registrado' }}</h5>
+          <h6 class="text-danger text-uppercase mb-1" style="font-weight: 600; font-size: 13px;">Alarmas (Reportes)</h6>
+          <h5 class="font-weight-bold mb-0">{{ reportCount }} reportes emitidos</h5>
         </div>
       </div>
     </div>
   </div>
 
   <div class="row">
-    <div class="col-lg-12 mb-4">
+    <div [ngClass]="selectedNeighborhoodInfo ? 'col-lg-8' : 'col-lg-12'">
       <div class="table-container p-2">
         <div id="map-viewer-id"></div>
       </div>
     </div>
 
-    <div class="col-lg-12" *ngIf="selectedNeighborhoodInfo">
-      <div class="card shadow-sm" style="border-radius: 12px; border: none;">
+    <div class="col-lg-4" *ngIf="selectedNeighborhoodInfo">
+      <div class="card shadow-sm h-100" style="border-radius: 12px; border: none;">
         <div class="card-header bg-white" style="border-radius: 12px 12px 0 0; padding: 20px;">
-          <h5 class="m-0 font-weight-bold">Lista de Usuarios del Barrio ({{ neighborhoodUsers.length }})</h5>
+          <h5 class="m-0 font-weight-bold" style="font-size: 16px; color: #2c3e50;">
+            <i class="bi bi-people-fill me-2 text-primary"></i> Habitantes ({{ neighborhoodUsers.length }})
+          </h5>
         </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover m-0">
-              <thead class="table-light">
-                <tr>
-                  <th style="padding-left: 20px;">Nombre</th>
-                  <th>Email</th>
-                  <th>Teléfono</th>
-                  <th>Dirección</th>
-                  <th>Rol</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let u of neighborhoodUsers">
-                  <td style="padding-left: 20px;"><strong>{{ u.name }} {{ u.last_name || '' }}</strong></td>
-                  <td>{{ u.email }}</td>
-                  <td>{{ u.phone || '—' }}</td>
-                  <td>{{ u.address || '—' }}</td>
-                  <td>
-                    <span class="badge" [ngClass]="{'bg-primary': u.role_id === 1, 'bg-success': u.role_id === 2, 'bg-secondary': u.role_id === 3}">
-                      {{ u.role_id === 1 ? 'Admin General' : (u.role_id === 2 ? 'Representante' : 'Usuario') }}
-                    </span>
-                  </td>
-                </tr>
-                <tr *ngIf="neighborhoodUsers.length === 0">
-                  <td colspan="5" class="text-center py-4 text-muted">No hay usuarios registrados en este barrio actualmente.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <div class="card-body p-0" style="height: 540px; overflow-y: auto;">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item px-4 py-3" *ngFor="let u of neighborhoodUsers">
+              <div class="d-flex align-items-center">
+                <div class="bg-light rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 40px; height: 40px;">
+                  <i class="bi bi-person-fill" style="font-size: 20px; color: #a0aabf;"></i>
+                </div>
+                <div>
+                  <strong style="font-size: 14px; color: #2c3e50;">{{ u.name }} {{ u.last_name || '' }}</strong>
+                  <div style="margin-top: 2px;">
+                    <span *ngIf="u.role_id === 2" class="badge bg-success" style="font-size: 10px; padding: 4px 6px;">Representante</span>
+                    <span *ngIf="u.role_id !== 2" class="badge bg-secondary" style="font-size: 10px; padding: 4px 6px;">Habitante</span>
+                  </div>
+                </div>
+              </div>
+            </li>
+            <li class="list-group-item text-center py-5 text-muted" *ngIf="neighborhoodUsers.length === 0">
+              <i class="bi bi-house-x" style="font-size: 30px; display: block; margin-bottom: 10px;"></i>
+              No hay habitantes registrados en este barrio.
+            </li>
+          </ul>
         </div>
       </div>
     </div>
