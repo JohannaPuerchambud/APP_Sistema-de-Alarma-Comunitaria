@@ -7,15 +7,9 @@ import { AuthService } from '../core/auth/auth.service';
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [
-    CommonModule,
-    NgIf,
-    RouterLink,
-    RouterLinkActive,
-    RouterOutlet
-  ],
+  imports: [CommonModule, NgIf, RouterLink, RouterLinkActive, RouterOutlet],
   templateUrl: './admin.html',
-  styleUrl: './admin.css'
+  styleUrl: './admin.css',
 })
 export class AdminLayout implements OnInit {
   userName: string = '';
@@ -24,7 +18,7 @@ export class AdminLayout implements OnInit {
 
   constructor(
     private router: Router,
-    public auth: AuthService
+    public auth: AuthService,
   ) {}
 
   ngOnInit(): void {
@@ -32,27 +26,26 @@ export class AdminLayout implements OnInit {
   }
 
   loadUserData() {
-  const claims = this.auth.claims();
+    const claims = this.auth.claims();
 
-  if (!claims) {
-    this.userName = 'Usuario';
-    this.userLastName = '';
-    this.userRole = '';
-    return;
+    if (!claims) {
+      this.userName = 'Usuario';
+      this.userLastName = '';
+      this.userRole = '';
+      return;
+    }
+
+    this.userName = claims.name || 'Usuario';
+    this.userLastName = claims.last_name || '';
+
+    const role = claims.role;
+    if (role === 1) this.userRole = 'Admin General';
+    else if (role === 2) this.userRole = 'Admin Barrio';
+    else this.userRole = 'Usuario';
   }
 
-  this.userName = claims.name || 'Usuario';
-  this.userLastName = claims.last_name || '';
-
-  const role = claims.role;
-  if (role === 1)      this.userRole = 'Admin General';
-  else if (role === 2) this.userRole = 'Admin Barrio';
-  else                 this.userRole = 'Usuario';
-}
-
-
   logout() {
-    this.auth.logout();              
-    this.router.navigate(['/login']); 
+    this.auth.logout();
+    this.router.navigate(['/login']);
   }
 }

@@ -1,0 +1,114 @@
+<div class="container mt-4">
+  <div class="page-header">
+    <h4 class="m-0">Gestión de UPCs</h4>
+    <button class="btn btn-primary" (click)="openModal('add')">
+      <i class="bi bi-plus-lg"></i> Nueva UPC
+    </button>
+  </div>
+
+  <div *ngIf="loading" class="alert alert-info">Cargando...</div>
+
+  <div class="table-container" *ngIf="!loading">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Dirección</th>
+          <th>Teléfono</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let u of upcs">
+          <td>{{ u.upc_id }}</td>
+          <td>
+            <strong>{{ u.name }}</strong>
+          </td>
+          <td>{{ u.address || '—' }}</td>
+          <td>{{ u.phone || '—' }}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary me-2" (click)="openModal('edit', u)">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" (click)="remove(u.upc_id)">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="upcs.length === 0">
+          <td colspan="5" class="text-center text-muted py-4">No hay UPCs registradas.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal fade" id="modalUpc" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header text-white" style="background: #667eea">
+        <h5 class="modal-title">{{ modalMode === 'add' ? 'Nueva UPC' : 'Editar UPC' }}</h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Nombre de la UPC</label>
+              <input
+                class="form-control"
+                [(ngModel)]="selected.name"
+                name="name"
+                placeholder="Ej: UPC La Victoria"
+                required
+              />
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Teléfono</label>
+              <input
+                class="form-control"
+                [(ngModel)]="selected.phone"
+                name="phone"
+                placeholder="Ej: 0987654321"
+              />
+            </div>
+            <div class="col-12 mb-3">
+              <label class="form-label">Dirección exacta</label>
+              <input class="form-control" [(ngModel)]="selected.address" name="address" />
+            </div>
+            <div class="col-12 mb-3">
+              <label class="form-label">Descripción o Notas</label>
+              <textarea
+                class="form-control"
+                [(ngModel)]="selected.description"
+                name="description"
+                rows="2"
+              ></textarea>
+            </div>
+
+            <div class="col-12 mt-2">
+              <label class="form-label d-flex justify-content-between align-items-center">
+                <span>Área de Cobertura (Clic para dibujar)</span>
+                <button type="button" class="btn btn-sm btn-outline-danger" (click)="clearMap()">
+                  Limpiar Dibujo
+                </button>
+              </label>
+              <p class="text-muted" style="font-size: 12px; margin-bottom: 8px">
+                Haz clic en el mapa para añadir vértices. Haz doble clic en un vértice para
+                borrarlo, o arrástralo para ajustarlo.
+              </p>
+              <div id="upc-map"></div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+        <button class="btn btn-success" (click)="save()">
+          <i class="bi bi-save"></i> Guardar UPC
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -7,7 +7,7 @@ import { jwtDecode } from 'jwt-decode';
 type Claims = {
   id: number;
   name: string;
-  last_name: string; 
+  last_name: string;
   role: 1 | 2 | 3;
   neighborhood?: number | null;
   exp?: number;
@@ -15,7 +15,8 @@ type Claims = {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-private apiUrl = 'https://api-sistema-de-alarma-comunitaria.onrender.com/api/auth';  private key = 'token';
+  private apiUrl = 'https://api-sistema-de-alarma-comunitaria.onrender.com/api/auth';
+  private key = 'token';
 
   constructor(private http: HttpClient) {}
 
@@ -39,9 +40,15 @@ private apiUrl = 'https://api-sistema-de-alarma-comunitaria.onrender.com/api/aut
     }
   }
 
-  setToken(token: string) { this.token = token; }
-  getToken(): string | null { return this.token; }
-  clearToken() { this.token = null; }
+  setToken(token: string) {
+    this.token = token;
+  }
+  getToken(): string | null {
+    return this.token;
+  }
+  clearToken() {
+    this.token = null;
+  }
 
   claims(): Claims | null {
     if (!this.token) return null;
@@ -65,9 +72,15 @@ private apiUrl = 'https://api-sistema-de-alarma-comunitaria.onrender.com/api/aut
     return (this.claims()?.neighborhood ?? null) as any;
   }
 
-  isAdminGeneral() { return this.role() === 1; }
-  isAdminBarrio()  { return this.role() === 2; }
-  isUsuario()      { return this.role() === 3; }
+  isAdminGeneral() {
+    return this.role() === 1;
+  }
+  isAdminBarrio() {
+    return this.role() === 2;
+  }
+  isUsuario() {
+    return this.role() === 3;
+  }
 
   hasAny(roles: (1 | 2 | 3)[]) {
     const r = this.role();

@@ -9,7 +9,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [FormsModule, CommonModule],
   templateUrl: './login.html',
-  styleUrl: './login.css'
+  styleUrl: './login.css',
 })
 export class Login {
   email = '';
@@ -25,7 +25,10 @@ export class Login {
   // Mensaje de validación
   errorMsg = '';
 
-  constructor(private auth: AuthService, private router: Router) { }
+  constructor(
+    private auth: AuthService,
+    private router: Router,
+  ) {}
 
   onLogin() {
     this.errorMsg = '';
@@ -51,7 +54,7 @@ export class Login {
       error: () => {
         this.errorMsg = 'Credenciales incorrectas';
         this.loading = false;
-      }
+      },
     });
   }
 }

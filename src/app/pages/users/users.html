@@ -1,5 +1,4 @@
 <div class="container mt-4">
-
   <!-- HEADER -->
   <div class="page-header">
     <h4 class="m-0">Gestión de Usuarios</h4>
@@ -10,8 +9,13 @@
 
   <!-- SEARCH -->
   <div class="search-container">
-    <input type="text" class="form-control" placeholder="🔍 Buscar por nombre, apellido, email o barrio..."
-      [(ngModel)]="searchText" (input)="applyFilters()">
+    <input
+      type="text"
+      class="form-control"
+      placeholder="🔍 Buscar por nombre, apellido, email o barrio..."
+      [(ngModel)]="searchText"
+      (input)="applyFilters()"
+    />
   </div>
 
   <div *ngIf="loading" class="alert alert-info">Cargando...</div>
@@ -40,8 +44,12 @@
           <td>{{ u.phone || '—' }}</td>
           <td>{{ u.neighborhood_name || '—' }}</td>
           <td>
-            <span [class.badge]="true" [class.bg-primary]="u.role_id === 1" [class.bg-success]="u.role_id === 2"
-              [class.bg-secondary]="u.role_id === 3">
+            <span
+              [class.badge]="true"
+              [class.bg-primary]="u.role_id === 1"
+              [class.bg-success]="u.role_id === 2"
+              [class.bg-secondary]="u.role_id === 3"
+            >
               {{ u.role_id === 1 ? 'Admin General' : u.role_id === 2 ? 'Admin Barrio' : 'Usuario' }}
             </span>
           </td>
@@ -56,8 +64,8 @@
         </tr>
 
         <tr *ngIf="filteredUsers.length === 0 && !loading">
-          <td colspan="8" class="text-center" style="padding: 40px; color: #6c757d;">
-            <i class="bi bi-inbox" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
+          <td colspan="8" class="text-center" style="padding: 40px; color: #6c757d">
+            <i class="bi bi-inbox" style="font-size: 32px; display: block; margin-bottom: 10px"></i>
             No se encontraron usuarios.
           </td>
         </tr>
@@ -69,17 +77,20 @@
   <nav *ngIf="totalPages > 1 && !loading" class="d-flex justify-content-center">
     <ul class="pagination">
       <li class="page-item" [class.disabled]="currentPage === 1">
-        <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPage - 1)">&laquo;</a>
+        <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPage - 1)"
+          >&laquo;</a
+        >
       </li>
       <li class="page-item" *ngFor="let page of pageNumbers" [class.active]="page === currentPage">
         <a class="page-link" href="javascript:void(0)" (click)="changePage(page)">{{ page }}</a>
       </li>
       <li class="page-item" [class.disabled]="currentPage === totalPages">
-        <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPage + 1)">&raquo;</a>
+        <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPage + 1)"
+          >&raquo;</a
+        >
       </li>
     </ul>
   </nav>
-
 </div>
 
 <!-- MODAL -->
@@ -95,16 +106,15 @@
 
       <div class="modal-body">
         <form>
-
           <!-- Nombre / Apellido -->
           <div class="row">
             <div class="col-md-6 mb-3">
               <label class="form-label">Nombre</label>
-              <input class="form-control" [(ngModel)]="selected.name" name="name">
+              <input class="form-control" [(ngModel)]="selected.name" name="name" />
             </div>
             <div class="col-md-6 mb-3">
               <label class="form-label">Apellido</label>
-              <input class="form-control" [(ngModel)]="selected.last_name" name="last_name">
+              <input class="form-control" [(ngModel)]="selected.last_name" name="last_name" />
             </div>
           </div>
 
@@ -112,11 +122,11 @@
           <div class="row">
             <div class="col-md-6 mb-3">
               <label class="form-label">Email</label>
-              <input class="form-control" [(ngModel)]="selected.email" name="email">
+              <input class="form-control" [(ngModel)]="selected.email" name="email" />
             </div>
             <div class="col-md-6 mb-3">
               <label class="form-label">Teléfono</label>
-              <input class="form-control" [(ngModel)]="selected.phone" name="phone">
+              <input class="form-control" [(ngModel)]="selected.phone" name="phone" />
             </div>
           </div>
 
@@ -126,27 +136,43 @@
               <label class="form-label">Contraseña</label>
 
               <div class="input-group mb-1">
-                <input class="form-control" [type]="showUserPassword ? 'text' : 'password'"
-                  [(ngModel)]="selected.password" name="password" [required]="modalMode === 'add'"
+                <input
+                  class="form-control"
+                  [type]="showUserPassword ? 'text' : 'password'"
+                  [(ngModel)]="selected.password"
+                  name="password"
+                  [required]="modalMode === 'add'"
                   [attr.minlength]="modalMode === 'add' ? 8 : null"
-                  [attr.pattern]="modalMode === 'add' ? '^(?=.*[A-Za-z])(?=.*\\d).{8,}$' : null" #userPwd="ngModel"
-                  [placeholder]="modalMode === 'edit' ? '(Dejar en blanco para no cambiar)' : 'Mínimo 8, letras y números'" />
+                  [attr.pattern]="modalMode === 'add' ? '^(?=.*[A-Za-z])(?=.*\\d).{8,}$' : null"
+                  #userPwd="ngModel"
+                  [placeholder]="
+                    modalMode === 'edit'
+                      ? '(Dejar en blanco para no cambiar)'
+                      : 'Mínimo 8, letras y números'
+                  "
+                />
 
-                <button class="btn btn-outline-secondary" type="button" (click)="showUserPassword = !showUserPassword">
+                <button
+                  class="btn btn-outline-secondary"
+                  type="button"
+                  (click)="showUserPassword = !showUserPassword"
+                >
                   <i class="bi" [ngClass]="showUserPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
                 </button>
               </div>
 
               <!-- ✅ Validación SOLO cuando es add (en edit es opcional) -->
-              <small class="text-danger"
-                *ngIf="modalMode === 'add' && userPwd.invalid && (userPwd.dirty || userPwd.touched)">
+              <small
+                class="text-danger"
+                *ngIf="modalMode === 'add' && userPwd.invalid && (userPwd.dirty || userPwd.touched)"
+              >
                 La contraseña debe tener mínimo 8 caracteres e incluir letras y números.
               </small>
             </div>
 
             <div class="col-md-6 mb-3">
               <label class="form-label">Dirección</label>
-              <input class="form-control" [(ngModel)]="selected.address" name="address">
+              <input class="form-control" [(ngModel)]="selected.address" name="address" />
             </div>
           </div>
 
@@ -154,8 +180,14 @@
           <div class="row">
             <div class="col-md-6 mb-3">
               <label class="form-label">Barrio</label>
-              <select class="form-select" [(ngModel)]="selected.neighborhood_id" name="neighborhood_id">
-                <option *ngFor="let n of neighborhoods" [value]="n.neighborhood_id">{{ n.name }}</option>
+              <select
+                class="form-select"
+                [(ngModel)]="selected.neighborhood_id"
+                name="neighborhood_id"
+              >
+                <option *ngFor="let n of neighborhoods" [value]="n.neighborhood_id">
+                  {{ n.name }}
+                </option>
               </select>
             </div>
             <div class="col-md-6 mb-3">
@@ -183,9 +215,19 @@
             <!-- ⭐ Buscador de dirección -->
             <div class="col-12 mb-2">
               <div class="input-group">
-                <input class="form-control" placeholder="Ej: Av. Atahualpa y Bolívar, Ibarra" [(ngModel)]="addressQuery"
-                  name="addressQuery" (keydown.enter)="searchAddress(); $event.preventDefault()" />
-                <button class="btn btn-outline-primary" type="button" (click)="searchAddress()" [disabled]="geoLoading">
+                <input
+                  class="form-control"
+                  placeholder="Ej: Av. Atahualpa y Bolívar, Ibarra"
+                  [(ngModel)]="addressQuery"
+                  name="addressQuery"
+                  (keydown.enter)="searchAddress(); $event.preventDefault()"
+                />
+                <button
+                  class="btn btn-outline-primary"
+                  type="button"
+                  (click)="searchAddress()"
+                  [disabled]="geoLoading"
+                >
                   <i class="bi bi-search"></i>
                 </button>
               </div>
@@ -212,21 +254,23 @@
           <div class="row">
             <div class="col-md-6 mb-3">
               <label class="form-label">Latitud seleccionada</label>
-              <input class="form-control" [value]="selected.home_lat || ''" readonly>
+              <input class="form-control" [value]="selected.home_lat || ''" readonly />
             </div>
             <div class="col-md-6 mb-3">
               <label class="form-label">Longitud seleccionada</label>
-              <input class="form-control" [value]="selected.home_lng || ''" readonly>
+              <input class="form-control" [value]="selected.home_lng || ''" readonly />
             </div>
           </div>
-
         </form>
       </div>
 
       <div class="modal-footer">
         <button class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
-        <button class="btn btn-primary" (click)="save()"
-          [disabled]="modalMode === 'add' && (!passwordPattern.test(selected.password || ''))">
+        <button
+          class="btn btn-primary"
+          (click)="save()"
+          [disabled]="modalMode === 'add' && !passwordPattern.test(selected.password || '')"
+        >
           {{ modalMode === 'add' ? 'Guardar' : 'Actualizar' }}
         </button>
       </div>

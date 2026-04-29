@@ -303,3 +303,11 @@
     padding: 20px 0px;
   }
 }
+
+#upc-map {
+  height: 350px;
+  width: 100%;
+  border-radius: 8px;
+  border: 2px solid #dee2e6;
+  z-index: 1; /* Previene bugs visuales con el modal de Bootstrap */
+}

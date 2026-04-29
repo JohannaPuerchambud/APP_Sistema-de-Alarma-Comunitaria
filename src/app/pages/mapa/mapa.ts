@@ -8,8 +8,11 @@ const iconDefault = L.icon({
   iconRetinaUrl: 'assets/marker-icon-2x.png',
   iconUrl: 'assets/marker-icon.png',
   shadowUrl: 'assets/marker-shadow.png',
-  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34],
-  tooltipAnchor: [16, -28], shadowSize: [41, 41]
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  tooltipAnchor: [16, -28],
+  shadowSize: [41, 41],
 });
 L.Marker.prototype.options.icon = iconDefault;
 
@@ -18,7 +21,7 @@ L.Marker.prototype.options.icon = iconDefault;
   standalone: true,
   imports: [CommonModule],
   templateUrl: './mapa.html',
-  styleUrl: './mapa.css'
+  styleUrl: './mapa.css',
 })
 export class Mapa implements OnInit, OnDestroy {
   map!: L.Map;
@@ -55,7 +58,7 @@ export class Mapa implements OnInit, OnDestroy {
     this.map = L.map('map').setView([0.3517, -78.1223], 13); // Centrado en Ibarra
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
+      attribution: '&copy; OpenStreetMap contributors',
     }).addTo(this.map);
 
     // Listener de clics para añadir puntos
@@ -82,14 +85,14 @@ export class Mapa implements OnInit, OnDestroy {
       next: (res) => {
         this.neighborhoods = res;
       },
-      error: (err) => console.error(err)
+      error: (err) => console.error(err),
     });
   }
 
   /** Se activa al cambiar el <select> */
   selectNeighborhood(event: any) {
     const id = +event.target.value;
-    this.selectedNeighborhood = this.neighborhoods.find(n => n.neighborhood_id === id) || null;
+    this.selectedNeighborhood = this.neighborhoods.find((n) => n.neighborhood_id === id) || null;
 
     // Limpiar dibujo anterior
     this.clearDrawing();
@@ -118,9 +121,12 @@ export class Mapa implements OnInit, OnDestroy {
         if (this.drawingLayer) {
           this.map.fitBounds(this.drawingLayer.getBounds());
         }
-
       } catch (e) {
-        console.error('Error al cargar polígono para editar:', e, this.selectedNeighborhood.boundary);
+        console.error(
+          'Error al cargar polígono para editar:',
+          e,
+          this.selectedNeighborhood.boundary,
+        );
         this.clearDrawing();
       }
     }
@@ -134,8 +140,8 @@ export class Mapa implements OnInit, OnDestroy {
       draggable: true,
       icon: L.divIcon({
         className: 'vertex-marker',
-        iconSize: [12, 12]
-      })
+        iconSize: [12, 12],
+      }),
     });
 
     // Arrastrar vértice → actualiza polígono
@@ -176,7 +182,7 @@ export class Mapa implements OnInit, OnDestroy {
     this.drawingLayer = L.polygon(this.drawingPoints, {
       color: '#3388ff',
       weight: 3,
-      dashArray: this.isDrawing ? '5, 5' : undefined   // punteado mientras dibujas
+      dashArray: this.isDrawing ? '5, 5' : undefined, // punteado mientras dibujas
     }).addTo(this.map);
   }
 
@@ -187,7 +193,7 @@ export class Mapa implements OnInit, OnDestroy {
       this.drawingLayer = null;
     }
 
-    this.vertexMarkers.forEach(m => this.map.removeLayer(m));
+    this.vertexMarkers.forEach((m) => this.map.removeLayer(m));
     this.vertexMarkers = [];
 
     this.drawingPoints = [];
@@ -276,7 +282,7 @@ export class Mapa implements OnInit, OnDestroy {
 
     const dataToSave = {
       ...this.selectedNeighborhood,
-      boundary: boundaryJson
+      boundary: boundaryJson,
     };
 
     this.service.update(this.selectedNeighborhood.neighborhood_id, dataToSave).subscribe({
@@ -295,7 +301,7 @@ export class Mapa implements OnInit, OnDestroy {
       error: (err) => {
         console.error(err);
         alert('Error al guardar los límites.');
-      }
+      },
     });
   }
 }

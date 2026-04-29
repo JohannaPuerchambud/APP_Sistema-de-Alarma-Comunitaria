@@ -7,7 +7,6 @@ import { AuthService } from '../../core/auth/auth.service';
 import * as L from 'leaflet';
 import { HttpClient } from '@angular/common/http';
 
-
 declare var bootstrap: any;
 
 @Component({
@@ -15,10 +14,9 @@ declare var bootstrap: any;
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './users.html',
-  styleUrl: './users.css'
+  styleUrl: './users.css',
 })
 export class Users implements OnInit {
-
   loading = false;
   neighborhoods: any[] = [];
   selected: any = {};
@@ -41,14 +39,12 @@ export class Users implements OnInit {
   showUserPassword = false;
   passwordPattern = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
 
-
   constructor(
     private userService: UserService,
     private neighborhoodService: NeighborhoodService,
     private auth: AuthService,
-    private http: HttpClient
-
-  ) { }
+    private http: HttpClient,
+  ) {}
 
   get isAdminGeneral(): boolean {
     return this.auth.isAdminGeneral();
@@ -70,25 +66,26 @@ export class Users implements OnInit {
       error: (err) => {
         console.error(err);
         this.loading = false;
-      }
+      },
     });
   }
 
   loadNeighborhoods() {
     this.neighborhoodService.getAll().subscribe({
-      next: (res) => this.neighborhoods = res,
-      error: (err) => console.error(err)
+      next: (res) => (this.neighborhoods = res),
+      error: (err) => console.error(err),
     });
   }
 
   applyFilters() {
     const st = this.searchText.toLowerCase();
 
-    this.filteredUsers = this.masterUserList.filter(u =>
-      (u.name && u.name.toLowerCase().includes(st)) ||
-      (u.last_name && u.last_name.toLowerCase().includes(st)) ||
-      (u.email && u.email.toLowerCase().includes(st)) ||
-      (u.neighborhood_name && u.neighborhood_name.toLowerCase().includes(st))
+    this.filteredUsers = this.masterUserList.filter(
+      (u) =>
+        (u.name && u.name.toLowerCase().includes(st)) ||
+        (u.last_name && u.last_name.toLowerCase().includes(st)) ||
+        (u.email && u.email.toLowerCase().includes(st)) ||
+        (u.neighborhood_name && u.neighborhood_name.toLowerCase().includes(st)),
     );
 
     this.currentPage = 1;
@@ -114,9 +111,10 @@ export class Users implements OnInit {
 
   get pageNumbers(): number[] {
     const total = this.totalPages;
-    return Array(total).fill(0).map((x, i) => i + 1);
+    return Array(total)
+      .fill(0)
+      .map((x, i) => i + 1);
   }
-
 
   openModal(mode: 'add' | 'edit', item?: any) {
     this.modalMode = mode;
@@ -138,9 +136,8 @@ export class Users implements OnInit {
         home_lat: null,
         home_lng: null,
         role_id: 3,
-        neighborhood_id: this.neighborhoods.length === 1
-          ? this.neighborhoods[0].neighborhood_id
-          : null
+        neighborhood_id:
+          this.neighborhoods.length === 1 ? this.neighborhoods[0].neighborhood_id : null,
       };
 
       this.addressQuery = '';
@@ -175,13 +172,16 @@ export class Users implements OnInit {
 
     this.initHomeMap();
 
-    setTimeout(() => {
-      this.homeMap?.invalidateSize();
+    setTimeout(
+      () => {
+        this.homeMap?.invalidateSize();
 
-      if (this.selected.home_lat != null && this.selected.home_lng != null) {
-        this.homeMap?.setView([this.selected.home_lat, this.selected.home_lng], 16);
-      }
-    }, looksHidden ? 250 : 50);
+        if (this.selected.home_lat != null && this.selected.home_lng != null) {
+          this.homeMap?.setView([this.selected.home_lat, this.selected.home_lng], 16);
+        }
+      },
+      looksHidden ? 250 : 50,
+    );
   }
 
   private initHomeMap() {
@@ -196,7 +196,7 @@ export class Users implements OnInit {
 
     const defaultCenter: L.LatLngExpression = [0.3517, -78.1223]; // Ibarra
     const startCenter: L.LatLngExpression =
-      (this.selected.home_lat != null && this.selected.home_lng != null)
+      this.selected.home_lat != null && this.selected.home_lng != null
         ? [this.selected.home_lat, this.selected.home_lng]
         : defaultCenter;
 
@@ -204,7 +204,7 @@ export class Users implements OnInit {
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
+      attribution: '&copy; OpenStreetMap contributors',
     }).addTo(this.homeMap);
 
     const iconDefault = L.icon({
@@ -215,7 +215,7 @@ export class Users implements OnInit {
       iconAnchor: [12, 41],
       popupAnchor: [1, -34],
       tooltipAnchor: [16, -28],
-      shadowSize: [41, 41]
+      shadowSize: [41, 41],
     });
     (L.Marker.prototype as any).options.icon = iconDefault;
 
@@ -244,29 +244,29 @@ export class Users implements OnInit {
     this.geoLoading = true;
     this.geoResults = [];
 
-    this.http.get<any[]>(`http://localhost:4000/api/geocode?q=${encodeURIComponent(q)}`)
-      .subscribe({
-        next: (data) => {
-          this.geoResults = Array.isArray(data) ? data : [];
+    this.http.get<any[]>(`http://localhost:4000/api/geocode?q=${encodeURIComponent(q)}`).subscribe({
+      next: (data) => {
+        this.geoResults = Array.isArray(data) ? data : [];
 
-          if (this.geoResults.length === 1) {
-            this.applyGeocode(this.geoResults[0]);
-          }
-
-          if (this.geoResults.length === 0) {
-            alert('No se encontraron resultados. Prueba con más detalle (ej: “Calle + número + ciudad”).');
-          }
-
-          this.geoLoading = false;
-        },
-        error: (err) => {
-          console.error(err);
-          alert('No se pudo buscar la dirección.');
-          this.geoLoading = false;
+        if (this.geoResults.length === 1) {
+          this.applyGeocode(this.geoResults[0]);
         }
-      });
-  }
 
+        if (this.geoResults.length === 0) {
+          alert(
+            'No se encontraron resultados. Prueba con más detalle (ej: “Calle + número + ciudad”).',
+          );
+        }
+
+        this.geoLoading = false;
+      },
+      error: (err) => {
+        console.error(err);
+        alert('No se pudo buscar la dirección.');
+        this.geoLoading = false;
+      },
+    });
+  }
 
   pickGeocodeResult(event: any) {
     const idx = +event.target.value;
@@ -293,7 +293,6 @@ export class Users implements OnInit {
     }
   }
 
-
   save() {
     const data = { ...this.selected };
 
@@ -301,16 +300,17 @@ export class Users implements OnInit {
       delete data.password;
     }
 
-    const serviceCall = this.modalMode === 'add'
-      ? this.userService.create(data)
-      : this.userService.update(this.selected.user_id, data);
+    const serviceCall =
+      this.modalMode === 'add'
+        ? this.userService.create(data)
+        : this.userService.update(this.selected.user_id, data);
 
     serviceCall.subscribe({
       next: () => {
         this.load();
         this.closeModal();
       },
-      error: (err) => console.error(err)
+      error: (err) => console.error(err),
     });
   }
 
@@ -318,7 +318,7 @@ export class Users implements OnInit {
     if (confirm('¿Eliminar este usuario?')) {
       this.userService.delete(id).subscribe({
         next: () => this.load(),
-        error: (err) => console.error(err)
+        error: (err) => console.error(err),
       });
     }
   }

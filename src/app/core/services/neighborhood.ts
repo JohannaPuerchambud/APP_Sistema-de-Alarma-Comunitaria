@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class NeighborhoodService {
-private apiUrl = 'https://api-sistema-de-alarma-comunitaria.onrender.com/api/neighborhoods';
+  private apiUrl = 'https://api-sistema-de-alarma-comunitaria.onrender.com/api/neighborhoods';
   constructor(private http: HttpClient) {}
 
   getAll(): Observable<any[]> {

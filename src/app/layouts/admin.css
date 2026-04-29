@@ -2,7 +2,6 @@
 :root {
   --primary-gradient: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
   --sidebar-width: 280px;
-
 }
 
 /* ========== LAYOUT BASE ========== */
@@ -29,7 +28,6 @@
   overflow-y: auto;
   flex-shrink: 0;
 }
-
 
 .sidebar::-webkit-scrollbar {
   width: 6px;
@@ -124,7 +122,7 @@
 }
 
 .menu a::before {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   top: 0;
