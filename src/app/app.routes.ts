@@ -23,11 +23,6 @@ export const routes: Routes = [
           import('./pages/neighborhoods/neighborhoods').then((m) => m.Neighborhoods),
       },
       {
-        path: 'map-delimit',
-        canActivate: [roleGuard([1])],
-        loadComponent: () => import('./pages/mapa/mapa').then((m) => m.Mapa),
-      },
-      {
         path: 'map-viewer',
         canActivate: [roleGuard([1, 2])],
         loadComponent: () =>

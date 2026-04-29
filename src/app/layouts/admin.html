@@ -26,7 +26,7 @@
           Barrios
         </a>
       </li>
-      
+
       <li *ngIf="auth.isAdminGeneral()">
         <a routerLink="/upcs" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
           <i class="bi bi-shield-check"></i>
@@ -44,18 +44,6 @@
           Usuarios
         </a>
       </li>
-
-      <li *ngIf="auth.isAdminGeneral()">
-        <a
-          routerLink="/map-delimit"
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: true }"
-        >
-          <i class="bi bi-geo-alt"></i>
-          Delimitar Barrios
-        </a>
-      </li>
-
       <li>
         <a
           routerLink="/map-viewer"
