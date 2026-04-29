@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
 import { NeighborhoodService } from '../../core/services/neighborhood';
-import { UserService } from '../../core/services/user'; // ✅ Para traer a los habitantes
-import { HttpClient } from '@angular/common/http'; // ✅ Para contar los reportes/alarmas
+import { UserService } from '../../core/services/user';
+import { ReportService } from '../../core/services/report';
 
 // Corrección de los pines de Leaflet
 const iconDefault = L.icon({
@@ -47,7 +47,7 @@ export class MapViewerComponent implements OnInit, OnDestroy {
   constructor(
     private neighborhoodService: NeighborhoodService,
     private userService: UserService,
-    private http: HttpClient
+    private reportService: ReportService
   ) {}
 
   ngOnInit(): void {
@@ -65,7 +65,7 @@ export class MapViewerComponent implements OnInit, OnDestroy {
     this.map.addLayer(this.userMarkersLayer); // Añadimos la capa de casitas
   }
 
-  loadData() {
+loadData() {
     // 1. Cargar Barrios
     this.neighborhoodService.getAll().subscribe({
       next: (res) => {
@@ -81,10 +81,10 @@ export class MapViewerComponent implements OnInit, OnDestroy {
       error: (err) => console.error(err)
     });
 
-    // 3. Cargar Reportes para contarlos
-    this.http.get<any[]>('http://localhost:4000/api/reports').subscribe({
+    // 3. Cargar Reportes (usa ReportService con token JWT)
+    this.reportService.getAll().subscribe({
       next: (res) => { this.allReports = res; },
-      error: (err) => console.error(err)
+      error: (err) => console.error('Error al cargar reportes:', err)
     });
   }
 
@@ -147,7 +147,7 @@ export class MapViewerComponent implements OnInit, OnDestroy {
     this.representative = this.neighborhoodUsers.find(u => u.role_id === 2);
 
     // ✅ 4. Contar la cantidad de reportes (alarmas) de este barrio
-    this.reportCount = this.allReports.filter(r => r.neighborhood_id === id).length;
+    this.reportCount = this.allReports.filter(r => Number(r.neighborhood_id) === id).length;
 
     // ✅ 5. Dibujar pines de usuarios en el mapa
     this.neighborhoodUsers.forEach(u => {
