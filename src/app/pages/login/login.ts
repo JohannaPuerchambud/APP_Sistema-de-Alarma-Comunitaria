@@ -20,8 +20,6 @@ export class Login {
   showPassword = false;
 
   // ✅ mínimo 8, letras y números
-  passwordPattern = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
-
   // Mensaje de validación
   errorMsg = '';
 
@@ -38,16 +36,19 @@ export class Login {
       return;
     }
 
-    if (!this.passwordPattern.test(this.password)) {
-      this.errorMsg = 'La contraseña debe tener mínimo 8 caracteres e incluir letras y números.';
-      return;
-    }
-
     this.loading = true;
 
     this.auth.login({ email: this.email, password: this.password }).subscribe({
       next: (res) => {
         this.auth.setToken(res.token);
+
+        if (!this.auth.hasAny([1, 2])) {
+          this.auth.clearToken();
+          this.errorMsg = 'Acceso exclusivo para administradores.';
+          this.loading = false;
+          return;
+        }
+
         this.router.navigate(['/users']);
         this.loading = false;
       },

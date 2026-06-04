@@ -122,8 +122,6 @@
               name="password"
               placeholder="••••••••"
               required
-              minlength="8"
-              pattern="^(?=.*[A-Za-z])(?=.*\\d).{8,}$"
               #pwd="ngModel"
             />
 
@@ -144,7 +142,7 @@
           {{ errorMsg }}
         </div>
 
-        <button class="btn-login" type="submit" []="loading || f.invalid">
+        <button class="btn-login" type="submit" [disabled]="loading || f.invalid">
           {{ loading ? 'Ingresando...' : 'Ingresar' }}
         </button>
       </form>

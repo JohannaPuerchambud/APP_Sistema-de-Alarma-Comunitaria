@@ -25,10 +25,6 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/login`, data);
   }
 
-  register(data: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/register`, data);
-  }
-
   get token(): string | null {
     return localStorage.getItem(this.key);
   }
