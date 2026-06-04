@@ -54,10 +54,18 @@
             </span>
           </td>
           <td>
-            <button class="btn btn-sm btn-outline-secondary me-1" (click)="openModal('edit', u)">
+            <button
+              *ngIf="canManageUser(u)"
+              class="btn btn-sm btn-outline-secondary me-1"
+              (click)="openModal('edit', u)"
+            >
               <i class="bi bi-pencil"></i>
             </button>
-            <button class="btn btn-sm btn-outline-danger" (click)="remove(u.user_id)">
+            <button
+              *ngIf="canManageUser(u)"
+              class="btn btn-sm btn-outline-danger"
+              (click)="remove(u.user_id)"
+            >
               <i class="bi bi-trash"></i>
             </button>
           </td>

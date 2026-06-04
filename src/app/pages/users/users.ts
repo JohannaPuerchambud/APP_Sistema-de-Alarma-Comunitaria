@@ -51,6 +51,10 @@ export class Users implements OnInit {
     return this.auth.isAdminGeneral();
   }
 
+  canManageUser(user: any): boolean {
+    return this.isAdminGeneral || Number(user?.role_id) === 3;
+  }
+
   ngOnInit(): void {
     this.load();
     this.loadNeighborhoods();

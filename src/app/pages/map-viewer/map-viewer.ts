@@ -44,6 +44,24 @@ export class MapViewerComponent implements OnInit, OnDestroy {
   private highlightStyle = { color: '#dc3545', weight: 4, fillOpacity: 0.4 };
   private selectedPolygon: L.Polygon | null = null;
 
+  private createPopup(title: unknown, subtitle?: string): HTMLElement {
+    const container = document.createElement('div');
+    const heading = document.createElement('strong');
+    heading.textContent = String(title ?? '');
+    container.appendChild(heading);
+
+    if (subtitle) {
+      const lineBreak = document.createElement('br');
+      const detail = document.createElement('span');
+      detail.style.fontSize = '10px';
+      detail.style.color = 'gray';
+      detail.textContent = subtitle;
+      container.append(lineBreak, detail);
+    }
+
+    return container;
+  }
+
   constructor(
     private neighborhoodService: NeighborhoodService,
     private userService: UserService,
@@ -104,7 +122,7 @@ loadData() {
               this.defaultStyle
             );
 
-            polygon.bindPopup(`<b>${n.name}</b>`);
+            polygon.bindPopup(this.createPopup(n.name));
             this.allLayers.addLayer(polygon);
             this.layerMap[n.neighborhood_id] = polygon;
           }
@@ -153,10 +171,12 @@ loadData() {
     this.neighborhoodUsers.forEach(u => {
       if (u.home_lat && u.home_lng && !isNaN(u.home_lat)) {
         const marker = L.marker([u.home_lat, u.home_lng]);
-        marker.bindPopup(`
-          <strong>${u.name} ${u.last_name || ''}</strong><br>
-          <span style="font-size:10px; color:gray;">${u.role_id === 2 ? 'Representante' : 'Habitante'}</span>
-        `);
+        marker.bindPopup(
+          this.createPopup(
+            `${u.name ?? ''} ${u.last_name ?? ''}`.trim(),
+            u.role_id === 2 ? 'Representante' : 'Habitante',
+          ),
+        );
         this.userMarkersLayer.addLayer(marker);
       }
     });
