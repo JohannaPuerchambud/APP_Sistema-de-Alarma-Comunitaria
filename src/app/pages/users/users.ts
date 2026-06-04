@@ -6,6 +6,7 @@ import { NeighborhoodService } from '../../core/services/neighborhood';
 import { AuthService } from '../../core/auth/auth.service';
 import * as L from 'leaflet';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 declare var bootstrap: any;
 
@@ -244,7 +245,7 @@ export class Users implements OnInit {
     this.geoLoading = true;
     this.geoResults = [];
 
-    this.http.get<any[]>(`http://localhost:4000/api/geocode?q=${encodeURIComponent(q)}`).subscribe({
+    this.http.get<any[]>(`${environment.apiBaseUrl}/geocode?q=${encodeURIComponent(q)}`).subscribe({
       next: (data) => {
         this.geoResults = Array.isArray(data) ? data : [];
 

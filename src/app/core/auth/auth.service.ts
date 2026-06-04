@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { jwtDecode } from 'jwt-decode';
+import { environment } from '../../../environments/environment';
 
 type Claims = {
   id: number;
@@ -15,7 +16,7 @@ type Claims = {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private apiUrl = 'https://api-sistema-de-alarma-comunitaria.onrender.com/api/auth';
+  private apiUrl = `${environment.apiBaseUrl}/auth`;
   private key = 'token';
 
   constructor(private http: HttpClient) {}

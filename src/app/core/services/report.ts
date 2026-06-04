@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ReportService {
-  private apiUrl = 'https://api-sistema-de-alarma-comunitaria.onrender.com/api/reports';
+  private apiUrl = `${environment.apiBaseUrl}/reports`;
   constructor(private http: HttpClient) {}
 
   getAll(): Observable<any[]> {

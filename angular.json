@@ -37,6 +37,12 @@
           },
           "configurations": {
             "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.production.ts"
+                }
+              ],
               "budgets": [
                 {
                   "type": "initial",
@@ -55,6 +61,17 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "local": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.local.ts"
+                }
+              ],
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
             }
           },
           "defaultConfiguration": "production"
@@ -67,6 +84,9 @@
             },
             "development": {
               "buildTarget": "alarma-comunitaria-web:build:development"
+            },
+            "local": {
+              "buildTarget": "alarma-comunitaria-web:build:local"
             }
           },
           "defaultConfiguration": "development"
