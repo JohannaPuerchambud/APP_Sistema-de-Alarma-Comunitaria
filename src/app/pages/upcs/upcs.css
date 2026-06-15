@@ -304,10 +304,283 @@
   }
 }
 
-#upc-map {
-  height: 350px;
-  width: 100%;
+/* ═══════════════════════════════════════════════════════════════
+   WIZARD STYLES
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Wizard modal shell ─────────────────────────────────────── */
+.wizard-content {
+  border-radius: 14px !important;
+  border: none !important;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18) !important;
+}
+
+.wizard-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  padding: 18px 24px !important;
+  border-bottom: none !important;
+  border-radius: 14px 14px 0 0 !important;
+}
+
+.wizard-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wizard-icon {
+  font-size: 22px;
+  color: rgba(255,255,255,0.9);
+}
+
+.wizard-header .modal-title {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: white !important;
+}
+
+/* ── Stepper ─────────────────────────────────────────────────── */
+.wizard-stepper {
+  display: flex;
+  align-items: center;
+  padding: 18px 32px;
+  background: #f8f9ff;
+  border-bottom: 1px solid #eef0f8;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+
+.step.active { opacity: 1; }
+
+.step-circle {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: #e0e7ff;
+  color: #667eea;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px;
+  border: 2.5px solid #c7d2fe;
+  transition: all 0.3s ease;
+}
+
+.step.active .step-circle {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 3px 12px rgba(102,126,234,0.4);
+}
+
+.step.done .step-circle {
+  background: #28a745;
+  color: white;
+  border-color: transparent;
+}
+
+.step-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #adb5bd;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.step.active .step-label { color: #667eea; }
+.step.done  .step-label { color: #28a745; }
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: #e0e7ff;
+  margin: 0 8px;
+  margin-bottom: 18px;
+  transition: background 0.3s ease;
+}
+
+.step-line.done { background: #28a745; }
+
+/* ── Body ─────────────────────────────────────────────────────── */
+.wizard-body { padding: 24px 28px !important; }
+
+.wizard-step-content { animation: fadeSlideIn 0.22s ease; }
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.step-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+}
+
+.step-hint {
+  font-size: 12.5px;
+  color: #6c757d;
+  margin-bottom: 12px;
+}
+
+.wizard-hint {
+  background: #f0f4ff;
+  border: 1px solid #d0dcff;
   border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  color: #4a5568;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.wizard-hint i { flex-shrink: 0; margin-top: 1px; color: #667eea; }
+
+.badge-optional {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6c757d;
+  background: #f0f0f0;
+  border-radius: 20px;
+  padding: 2px 8px;
+  margin-left: 8px;
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.map-actions {
+  display: flex;
+  align-items: center;
+}
+
+/* ── Maps ─────────────────────────────────────────────────────── */
+#upc-map {
+  height: 320px;
+  width: 100%;
+  border-radius: 10px;
   border: 2px solid #dee2e6;
-  z-index: 1; /* Previene bugs visuales con el modal de Bootstrap */
+  z-index: 1;
+}
+
+#upc-location-map {
+  height: 280px;
+  width: 100%;
+  border-radius: 10px;
+  border: 2px solid #b3c6ff;
+  z-index: 1;
+}
+
+/* ── Summary card ─────────────────────────────────────────────── */
+.summary-card {
+  background: #f8f9ff;
+  border: 1.5px solid #e0e7ff;
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.summary-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #495057;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  align-items: center;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 13.5px;
+}
+
+.summary-row:last-child { border-bottom: none; }
+
+.summary-label {
+  color: #6c757d;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  flex-shrink: 0;
+  min-width: 90px;
+}
+
+.summary-value {
+  color: #343a40;
+  text-align: right;
+  font-size: 13.5px;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────── */
+.wizard-footer {
+  background: #fafafa !important;
+  border-top: 1px solid #f0f0f0 !important;
+  padding: 16px 24px !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.wizard-footer .btn-light {
+  border: 1.5px solid #dee2e6;
+  color: #6c757d;
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 9px 18px;
+}
+
+.wizard-footer .btn-outline-secondary {
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.wizard-footer .btn-primary {
+  padding: 9px 22px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.wizard-footer .btn-success {
+  padding: 9px 22px;
+  border-radius: 8px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #28a745, #20c997);
+  border: none;
+  box-shadow: 0 3px 10px rgba(40,167,69,0.25);
+}
+
+.wizard-footer .btn-success:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(40,167,69,0.3);
+}
+
+/* ── Legacy section-label (kept for compatibility) ─────────────── */
+.section-label {
+  font-weight: 700;
+  font-size: 13px;
+  color: #495057;
+  border-left: 3px solid #667eea;
+  padding-left: 10px;
+  margin-bottom: 12px;
+  margin-top: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }

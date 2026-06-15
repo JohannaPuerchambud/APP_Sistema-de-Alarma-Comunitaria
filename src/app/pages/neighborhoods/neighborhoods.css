@@ -308,5 +308,412 @@
     width: 100%;
     border-radius: 8px;
     border: 2px solid #dee2e6;
-    z-index: 1; /* Previene bugs visuales con el modal */
+    z-index: 1;
 }
+
+/* ═══════════════════ WIZARD STYLES ═══════════════════ */
+
+/* Wizard modal overrides */
+:host ::ng-deep #wizardModal .modal-content.wizard-content {
+  border-radius: 16px;
+  border: none;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.wizard-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  padding: 20px 28px !important;
+  border-bottom: none !important;
+  border-radius: 0 !important;
+}
+
+.wizard-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wizard-icon {
+  font-size: 22px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.wizard-header .modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+}
+
+/* ── Stepper ─────────────────────────────────────── */
+.wizard-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 28px 10px;
+  background: #fafbff;
+  border-bottom: 1px solid #eef0f7;
+  gap: 0;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.step-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #e9ecef;
+  color: #adb5bd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  border: 2px solid #dee2e6;
+}
+
+.step.active .step-circle {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-color: #667eea;
+  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
+}
+
+.step.done .step-circle {
+  background: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+.step-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #adb5bd;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.step.active .step-label {
+  color: #667eea;
+}
+
+.step.done .step-label {
+  color: #28a745;
+}
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: #dee2e6;
+  margin: 0 12px;
+  margin-bottom: 22px;
+  transition: background 0.3s ease;
+}
+
+.step-line.done {
+  background: #28a745;
+}
+
+/* ── Body ────────────────────────────────────────── */
+.wizard-body {
+  padding: 28px !important;
+  min-height: 280px;
+}
+
+.wizard-step-content {
+  animation: fadeSlideIn 0.25s ease;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.step-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #343a40;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.step-hint {
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+/* ── Wizard hint box ─────────────────────────────── */
+.wizard-hint {
+  background: #f0f4ff;
+  border-left: 4px solid #667eea;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wizard-hint i {
+  color: #667eea;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* ── Map inside wizard ───────────────────────────── */
+.map-actions {
+  display: flex;
+  align-items: center;
+}
+
+#wizard-map {
+  height: 320px;
+  width: 100%;
+  border-radius: 10px;
+  border: 2px solid #dee2e6;
+  z-index: 1;
+  transition: border-color 0.2s ease;
+}
+
+#wizard-map:focus-within {
+  border-color: #667eea;
+}
+
+/* ── Summary card ────────────────────────────────── */
+.summary-card {
+  background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+  border: 1.5px solid #e0e7ff;
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+
+.summary-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #495057;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0e7ff;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(224, 231, 255, 0.5);
+  font-size: 13.5px;
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+}
+
+.summary-label {
+  color: #6c757d;
+  font-weight: 600;
+  min-width: 110px;
+}
+
+.summary-value {
+  color: #343a40;
+  font-weight: 500;
+  text-align: right;
+  flex: 1;
+}
+
+/* ── Footer ──────────────────────────────────────── */
+.wizard-footer {
+  background: #fafafa;
+  border-top: 1px solid #f0f0f0;
+  padding: 16px 28px !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+:host ::ng-deep .wizard-footer .btn-success {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+:host ::ng-deep .wizard-footer .btn-success:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.35);
+}
+
+:host ::ng-deep .wizard-footer .btn-outline-secondary {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+/* ── Optional badge ──────────────────────────────── */
+.badge-optional {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6c757d;
+  background: #f0f0f0;
+  border-radius: 20px;
+  padding: 2px 8px;
+  margin-left: 8px;
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* ── Wizard sub-label ────────────────────────────── */
+.wizard-sublabel {
+  display: block;
+  font-size: 11px;
+  color: rgba(255,255,255,0.75);
+  font-weight: 500;
+  margin-top: 2px;
+  letter-spacing: 0.3px;
+}
+
+/* ── Step 3: Scrollable user list ────────────────── */
+.user-scroll-list {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-right: 4px;
+  /* Custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #667eea #f0f0f0;
+}
+
+.user-scroll-list::-webkit-scrollbar { width: 6px; }
+.user-scroll-list::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 3px; }
+.user-scroll-list::-webkit-scrollbar-thumb { background: #667eea; border-radius: 3px; }
+
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8f9ff;
+  border: 1.5px solid #e0e7ff;
+  border-radius: 9px;
+  padding: 10px 14px;
+  transition: border-color 0.2s;
+  flex-shrink: 0;
+}
+
+.user-row:hover { border-color: #667eea; }
+
+.user-row-avatar {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 16px; flex-shrink: 0;
+}
+
+.user-row-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 13px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.user-row-info strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-row-info span { color: #6c757d; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Step 3: Domicile sub-step map ───────────────── */
+#wizard-home-map {
+  height: 260px;
+  width: 100%;
+  border-radius: 10px;
+  border: 2px solid #dee2e6;
+  z-index: 1;
+  margin-bottom: 4px;
+}
+
+/* ── Step 4: Representante scroll list ───────────── */
+.rep-scroll-list {
+  max-height: 230px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1.5px solid #e9ecef;
+  border-radius: 10px;
+  padding: 8px;
+  background: #fafafa;
+  /* Custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #667eea #f0f0f0;
+}
+
+.rep-scroll-list::-webkit-scrollbar { width: 6px; }
+.rep-scroll-list::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 3px; }
+.rep-scroll-list::-webkit-scrollbar-thumb { background: #667eea; border-radius: 3px; }
+
+.rep-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 9px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.rep-item:hover { border-color: #667eea; background: #f8f9ff; }
+
+.rep-item.selected {
+  border-color: #667eea;
+  background: #f0f4ff;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+}
+
+.rep-avatar {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 17px; flex-shrink: 0;
+}
+
+.rep-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13.5px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rep-info strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rep-info span { color: #6c757d; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.rep-check {
+  font-size: 20px;
+  color: #dee2e6;
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+

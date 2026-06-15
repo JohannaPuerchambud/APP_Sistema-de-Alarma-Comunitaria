@@ -15,6 +15,7 @@
           <th>ID</th>
           <th>Nombre</th>
           <th>Dirección</th>
+          <th>Coordenadas</th>
           <th>Teléfono</th>
           <th>Acciones</th>
         </tr>
@@ -22,93 +23,263 @@
       <tbody>
         <tr *ngFor="let u of upcs">
           <td>{{ u.upc_id }}</td>
-          <td>
-            <strong>{{ u.name }}</strong>
-          </td>
+          <td><strong>{{ u.name }}</strong></td>
           <td>{{ u.address || '—' }}</td>
+          <td>
+            <span *ngIf="u.lat && u.lng" class="text-muted" style="font-size:12px">
+              <i class="bi bi-geo-alt text-primary"></i>
+              {{ u.lat | number:'1.4-4' }}, {{ u.lng | number:'1.4-4' }}
+            </span>
+            <span *ngIf="!u.lat || !u.lng" class="text-muted">—</span>
+          </td>
           <td>{{ u.phone || '—' }}</td>
           <td>
-            <button class="btn btn-sm btn-outline-primary me-2" (click)="openModal('edit', u)">
+            <button class="btn btn-sm btn-outline-primary me-2" (click)="openModal('edit', u)" title="Editar">
               <i class="bi bi-pencil"></i>
             </button>
-            <button class="btn btn-sm btn-outline-danger" (click)="remove(u.upc_id)">
+            <button class="btn btn-sm btn-outline-danger" (click)="remove(u.upc_id)" title="Eliminar">
               <i class="bi bi-trash"></i>
             </button>
           </td>
         </tr>
         <tr *ngIf="upcs.length === 0">
-          <td colspan="5" class="text-center text-muted py-4">No hay UPCs registradas.</td>
+          <td colspan="6" class="text-center text-muted py-4">No hay UPCs registradas.</td>
         </tr>
       </tbody>
     </table>
   </div>
 </div>
 
+
+<!-- ═══════════════════ WIZARD MODAL UPC (4 pasos) ═══════════════════ -->
 <div class="modal fade" id="modalUpc" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header text-white" style="background: #667eea">
-        <h5 class="modal-title">{{ modalMode === 'add' ? 'Nueva UPC' : 'Editar UPC' }}</h5>
+    <div class="modal-content wizard-content">
+
+      <!-- Header -->
+      <div class="modal-header wizard-header">
+        <div class="wizard-title-group">
+          <i class="bi bi-shield-shaded wizard-icon"></i>
+          <h5 class="modal-title">{{ modalMode === 'add' ? 'Nueva UPC' : 'Editar UPC' }}</h5>
+        </div>
         <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
       </div>
-      <div class="modal-body">
-        <form>
+
+      <!-- Stepper (4 pasos) -->
+      <div class="wizard-stepper">
+
+        <div class="step" [class.active]="upcStep >= 1" [class.done]="upcStep > 1">
+          <div class="step-circle">
+            <i class="bi bi-check-lg" *ngIf="upcStep > 1"></i>
+            <span *ngIf="upcStep <= 1">1</span>
+          </div>
+          <span class="step-label">Datos</span>
+        </div>
+        <div class="step-line" [class.done]="upcStep > 1"></div>
+
+        <div class="step" [class.active]="upcStep >= 2" [class.done]="upcStep > 2">
+          <div class="step-circle">
+            <i class="bi bi-check-lg" *ngIf="upcStep > 2"></i>
+            <span *ngIf="upcStep <= 2">2</span>
+          </div>
+          <span class="step-label">Ubicación</span>
+        </div>
+        <div class="step-line" [class.done]="upcStep > 2"></div>
+
+        <div class="step" [class.active]="upcStep >= 3" [class.done]="upcStep > 3">
+          <div class="step-circle">
+            <i class="bi bi-check-lg" *ngIf="upcStep > 3"></i>
+            <span *ngIf="upcStep <= 3">3</span>
+          </div>
+          <span class="step-label">Cobertura</span>
+        </div>
+        <div class="step-line" [class.done]="upcStep > 3"></div>
+
+        <div class="step" [class.active]="upcStep >= 4">
+          <div class="step-circle">4</div>
+          <span class="step-label">Resumen</span>
+        </div>
+
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body wizard-body">
+
+        <!-- ════ PASO 1: Datos de la UPC ════ -->
+        <div class="wizard-step-content" *ngIf="upcStep === 1">
+          <h6 class="step-title">
+            <i class="bi bi-info-circle-fill me-2 text-primary"></i>Información de la UPC
+          </h6>
           <div class="row">
             <div class="col-md-6 mb-3">
-              <label class="form-label">Nombre de la UPC</label>
-              <input
-                class="form-control"
-                [(ngModel)]="selected.name"
-                name="name"
-                placeholder="Ej: UPC La Victoria"
-                required
-              />
+              <label class="form-label">Nombre de la UPC <span class="text-danger">*</span></label>
+              <input class="form-control" [(ngModel)]="selected.name" name="name"
+                placeholder="Ej: UPC La Victoria" />
             </div>
             <div class="col-md-6 mb-3">
               <label class="form-label">Teléfono</label>
-              <input
-                class="form-control"
-                [(ngModel)]="selected.phone"
-                name="phone"
-                placeholder="Ej: 0987654321"
-              />
+              <input class="form-control" [(ngModel)]="selected.phone" name="phone"
+                placeholder="Ej: 0987654321" />
             </div>
             <div class="col-12 mb-3">
-              <label class="form-label">Dirección exacta</label>
-              <input class="form-control" [(ngModel)]="selected.address" name="address" />
-            </div>
-            <div class="col-12 mb-3">
-              <label class="form-label">Descripción o Notas</label>
-              <textarea
-                class="form-control"
-                [(ngModel)]="selected.description"
-                name="description"
-                rows="2"
-              ></textarea>
-            </div>
-
-            <div class="col-12 mt-2">
-              <label class="form-label d-flex justify-content-between align-items-center">
-                <span>Área de Cobertura (Clic para dibujar)</span>
-                <button type="button" class="btn btn-sm btn-outline-danger" (click)="clearMap()">
-                  Limpiar Dibujo
-                </button>
-              </label>
-              <p class="text-muted" style="font-size: 12px; margin-bottom: 8px">
-                Haz clic en el mapa para añadir vértices. Haz doble clic en un vértice para
-                borrarlo, o arrástralo para ajustarlo.
-              </p>
-              <div id="upc-map"></div>
+              <label class="form-label">Descripción / Notas</label>
+              <textarea class="form-control" [(ngModel)]="selected.description" name="description"
+                rows="3" placeholder="Información adicional sobre esta UPC..."></textarea>
             </div>
           </div>
-        </form>
+          <div class="wizard-hint">
+            <i class="bi bi-lightbulb-fill"></i>
+            En los siguientes pasos podrás marcar la ubicación exacta y delimitar el área de cobertura.
+          </div>
+        </div>
+
+        <!-- ════ PASO 2: Ubicación ════ -->
+        <div class="wizard-step-content" *ngIf="upcStep === 2">
+          <h6 class="step-title">
+            <i class="bi bi-geo-alt-fill me-2 text-success"></i>Ubicación de la UPC
+            <span class="badge-optional">Opcional</span>
+          </h6>
+
+          <div class="mb-3">
+            <label class="form-label">Dirección exacta</label>
+            <input class="form-control" [(ngModel)]="selected.address" name="address"
+              placeholder="Ej: Av. El Retorno y Río Amazonas, Ibarra" />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Buscar en el mapa</label>
+            <div class="input-group">
+              <input class="form-control" placeholder="Ej: UPC La Victoria, Ibarra"
+                [(ngModel)]="addressQuery" name="addressQuery"
+                (keydown.enter)="searchAddress(); $event.preventDefault()" />
+              <button class="btn btn-outline-primary" type="button"
+                (click)="searchAddress()" [disabled]="geoLoading">
+                <i class="bi" [ngClass]="geoLoading ? 'bi-hourglass-split' : 'bi-search'"></i>
+              </button>
+            </div>
+            <div *ngIf="geoResults.length" class="mt-2">
+              <select class="form-select" (change)="pickGeocodeResult($event)">
+                <option value="">-- Selecciona un resultado --</option>
+                <option *ngFor="let r of geoResults; let i = index" [value]="i">
+                  {{ r.display_name }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <p class="step-hint">
+            <i class="bi bi-info-circle me-1"></i>
+            Haz clic en el mapa para marcar la ubicación exacta, o usa el buscador.
+          </p>
+          <div id="upc-location-map"></div>
+
+          <div class="row mt-3" *ngIf="selected.lat">
+            <div class="col-md-6">
+              <label class="form-label">Latitud</label>
+              <input class="form-control" [value]="selected.lat" readonly />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Longitud</label>
+              <input class="form-control" [value]="selected.lng" readonly />
+            </div>
+          </div>
+          <div class="wizard-hint mt-3" *ngIf="!selected.lat">
+            <i class="bi bi-info-circle"></i> Puedes omitir la ubicación y continuar al siguiente paso.
+          </div>
+        </div>
+
+        <!-- ════ PASO 3: Área de Cobertura ════ -->
+        <div class="wizard-step-content" *ngIf="upcStep === 3">
+          <h6 class="step-title">
+            <i class="bi bi-bounding-box me-2 text-danger"></i>Área de Cobertura
+            <span class="badge-optional">Opcional</span>
+          </h6>
+          <p class="step-hint">
+            Haz clic en el mapa para añadir vértices · Arrastra para ajustar · Doble clic para borrar un punto.
+          </p>
+          <div class="map-actions mb-2">
+            <button type="button" class="btn btn-sm btn-outline-danger" (click)="clearCoverageMap()">
+              <i class="bi bi-trash me-1"></i>Limpiar Dibujo
+            </button>
+            <span class="ms-2 text-muted" style="font-size:12px" *ngIf="drawingPoints.length > 0">
+              {{ drawingPoints.length }} punto(s) — mínimo 3 para guardar el área.
+            </span>
+          </div>
+          <div id="upc-map"></div>
+          <div class="wizard-hint mt-2" *ngIf="drawingPoints.length === 0">
+            <i class="bi bi-info-circle"></i> Si no dibujas el área se guardará sin polígono de cobertura.
+          </div>
+        </div>
+
+        <!-- ════ PASO 4: Resumen ════ -->
+        <div class="wizard-step-content" *ngIf="upcStep === 4">
+          <h6 class="step-title">
+            <i class="bi bi-clipboard-check-fill me-2 text-primary"></i>Resumen de la UPC
+          </h6>
+
+          <div class="summary-card">
+            <div class="summary-row">
+              <span class="summary-label">Nombre</span>
+              <span class="summary-value"><strong>{{ selected.name }}</strong></span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Teléfono</span>
+              <span class="summary-value">{{ selected.phone || '—' }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Descripción</span>
+              <span class="summary-value">{{ selected.description || '—' }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Dirección</span>
+              <span class="summary-value">{{ selected.address || '—' }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Ubicación</span>
+              <span class="summary-value">
+                <span *ngIf="selected.lat" class="text-success">
+                  <i class="bi bi-check-circle-fill me-1"></i>
+                  {{ selected.lat | number:'1.4-4' }}, {{ selected.lng | number:'1.4-4' }}
+                </span>
+                <span *ngIf="!selected.lat" class="text-muted">Sin ubicar</span>
+              </span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Cobertura</span>
+              <span class="summary-value">
+                <span *ngIf="drawingPoints.length >= 3" class="text-success">
+                  <i class="bi bi-check-circle-fill me-1"></i>{{ drawingPoints.length }} puntos definidos
+                </span>
+                <span *ngIf="drawingPoints.length === 0" class="text-muted">Sin delimitar</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="wizard-hint mt-4">
+            <i class="bi bi-info-circle"></i>
+            Revisa los datos. Si necesitas corregir algo usa el botón <strong>Atrás</strong>. Cuando estés listo haz clic en <strong>{{ modalMode === 'add' ? 'Crear UPC' : 'Guardar Cambios' }}</strong>.
+          </div>
+        </div>
+
+      </div><!-- /wizard-body -->
+
+      <!-- Footer -->
+      <div class="modal-footer wizard-footer">
+        <button class="btn btn-light" (click)="closeModal()">Cancelar</button>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary" *ngIf="upcStep > 1" (click)="upcBack()">
+            <i class="bi bi-arrow-left me-1"></i>Atrás
+          </button>
+          <button class="btn btn-primary" *ngIf="upcStep < 4" (click)="upcNext()">
+            Siguiente <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+          <button class="btn btn-success" *ngIf="upcStep === 4" (click)="save()">
+            <i class="bi bi-check-circle me-1"></i>
+            {{ modalMode === 'add' ? 'Crear UPC' : 'Guardar Cambios' }}
+          </button>
+        </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
-        <button class="btn btn-success" (click)="save()">
-          <i class="bi bi-save"></i> Guardar UPC
-        </button>
-      </div>
+
     </div>
   </div>
 </div>

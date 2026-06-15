@@ -23,4 +23,12 @@ export class NeighborhoodService {
   delete(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
+
+  getById(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${id}`);
+  }
+
+  setAdmin(neighborhoodId: number, adminUserId: number | null): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${neighborhoodId}/admin`, { admin_user_id: adminUserId });
+  }
 }

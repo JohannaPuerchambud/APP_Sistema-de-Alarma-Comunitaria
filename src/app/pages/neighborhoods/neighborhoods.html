@@ -1,14 +1,15 @@
 <div class="container mt-4">
   <div class="page-header">
     <h4 class="m-0">Gestión de Barrios</h4>
-    <button class="btn btn-primary" (click)="openModal('add')">
+    <button class="btn btn-primary" (click)="openWizard()">
       <i class="bi bi-plus-lg"></i> Nuevo Barrio
     </button>
   </div>
 
   <div class="search-container">
-    <input type="text" class="form-control" placeholder="🔍 Buscar por nombre o descripción..."
-      [(ngModel)]="searchText" (input)="applyFilters()">
+    <input type="text" class="form-control"
+      placeholder="🔍 Buscar por nombre, descripción, UPC o representante..."
+      [(ngModel)]="searchText" (input)="applyFilters()" />
   </div>
 
   <div *ngIf="loading" class="alert alert-info">Cargando...</div>
@@ -17,18 +18,31 @@
     <table class="table table-striped">
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Nombre</th>
-          <th>Descripción</th>
-          <th>Núm. Alarma</th> <th>Acciones</th>
+          <th>ID</th><th>Nombre</th><th>UPC</th><th>Representante</th><th>Núm. Alarma</th><th>Acciones</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let n of paginatedItems">
           <td>{{ n.neighborhood_id }}</td>
           <td><strong>{{ n.name }}</strong></td>
-          <td>{{ n.description || '—' }}</td>
-          <td>{{ n.alarm_number || '—' }}</td> <td>
+          <td>
+            <span *ngIf="n.upc_name" class="badge" style="background:#667eea">
+              <i class="bi bi-shield-check me-1"></i>{{ n.upc_name }}
+            </span>
+            <span *ngIf="!n.upc_name" class="text-muted">—</span>
+          </td>
+          <td>
+            <ng-container *ngIf="n.admin_name; else noAdmin">
+              <div class="d-flex align-items-center gap-1">
+                <i class="bi bi-person-badge text-success"></i>
+                <span>{{ n.admin_name }} {{ n.admin_last_name || '' }}</span>
+              </div>
+              <small class="text-muted">{{ n.admin_email }}</small>
+            </ng-container>
+            <ng-template #noAdmin><span class="text-muted">— Sin representante</span></ng-template>
+          </td>
+          <td>{{ n.alarm_number || '—' }}</td>
+          <td>
             <button class="btn btn-sm btn-outline-primary me-2" (click)="openModal('edit', n)" title="Editar">
               <i class="bi bi-pencil"></i>
             </button>
@@ -38,7 +52,7 @@
           </td>
         </tr>
         <tr *ngIf="filteredItems.length === 0 && !loading">
-          <td colspan="5" class="text-center py-4 text-muted">No se encontraron barrios.</td>
+          <td colspan="6" class="text-center py-4 text-muted">No se encontraron barrios.</td>
         </tr>
       </tbody>
     </table>
@@ -59,10 +73,391 @@
   </nav>
 </div>
 
+
+<!-- ═══════════════════ WIZARD MODAL (4 PASOS) ═══════════════════ -->
+<div class="modal fade" id="wizardModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content wizard-content">
+
+      <!-- Header -->
+      <div class="modal-header wizard-header">
+        <div class="wizard-title-group">
+          <i class="bi bi-building wizard-icon"></i>
+          <div>
+            <h5 class="modal-title">Nuevo Barrio</h5>
+            <!-- Sub-step label -->
+            <small *ngIf="wizardStep === 3 && userSubStep === 'form'" class="wizard-sublabel">Datos del usuario</small>
+            <small *ngIf="wizardStep === 3 && userSubStep === 'domicile'" class="wizard-sublabel">Ubicación de domicilio</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" (click)="closeWizard()"></button>
+      </div>
+
+      <!-- Stepper (4 pasos) -->
+      <div class="wizard-stepper">
+        <div class="step" [class.active]="wizardStep >= 1" [class.done]="wizardStep > 1">
+          <div class="step-circle">
+            <i class="bi bi-check-lg" *ngIf="wizardStep > 1"></i>
+            <span *ngIf="wizardStep <= 1">1</span>
+          </div>
+          <span class="step-label">Barrio</span>
+        </div>
+        <div class="step-line" [class.done]="wizardStep > 1"></div>
+
+        <div class="step" [class.active]="wizardStep >= 2" [class.done]="wizardStep > 2">
+          <div class="step-circle">
+            <i class="bi bi-check-lg" *ngIf="wizardStep > 2"></i>
+            <span *ngIf="wizardStep <= 2">2</span>
+          </div>
+          <span class="step-label">Mapa</span>
+        </div>
+        <div class="step-line" [class.done]="wizardStep > 2"></div>
+
+        <div class="step" [class.active]="wizardStep >= 3" [class.done]="wizardStep > 3">
+          <div class="step-circle">
+            <i class="bi bi-check-lg" *ngIf="wizardStep > 3"></i>
+            <span *ngIf="wizardStep <= 3">3</span>
+          </div>
+          <span class="step-label">Usuarios</span>
+        </div>
+        <div class="step-line" [class.done]="wizardStep > 3"></div>
+
+        <div class="step" [class.active]="wizardStep >= 4">
+          <div class="step-circle">4</div>
+          <span class="step-label">Representante</span>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body wizard-body">
+
+        <!-- ════ PASO 1: Datos del barrio ════ -->
+        <div class="wizard-step-content" *ngIf="wizardStep === 1">
+          <h6 class="step-title"><i class="bi bi-info-circle-fill me-2 text-primary"></i>Información del Barrio</h6>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Nombre del barrio <span class="text-danger">*</span></label>
+              <input class="form-control" [(ngModel)]="wizardData.name" name="wiz_name" placeholder="Ej: La Floresta">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Descripción</label>
+              <input class="form-control" [(ngModel)]="wizardData.description" name="wiz_desc" placeholder="Sector norte...">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Número Chip Alarma <small class="text-muted">(Twilio)</small></label>
+              <input class="form-control" [(ngModel)]="wizardData.alarm_number" name="wiz_alarm" placeholder="+593961662731">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">UPC Asignada</label>
+              <select class="form-select" [(ngModel)]="wizardData.upc_id" name="wiz_upc">
+                <option value="">-- Sin UPC --</option>
+                <option *ngFor="let u of upcs" [value]="u.upc_id">{{ u.name }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="wizard-hint">
+            <i class="bi bi-lightbulb-fill"></i>
+            Los siguientes pasos te permiten delimitar el área, agregar habitantes y elegir al representante.
+          </div>
+        </div>
+
+        <!-- ════ PASO 2: Mapa delimitación ════ -->
+        <div class="wizard-step-content" *ngIf="wizardStep === 2">
+          <h6 class="step-title">
+            <i class="bi bi-map-fill me-2 text-success"></i>Delimitación en el Mapa
+            <span class="badge-optional">Opcional</span>
+          </h6>
+          <p class="text-muted step-hint">Haz clic para añadir vértices · Arrastra para mover · Doble clic para borrar un punto</p>
+          <div class="map-actions mb-2">
+            <button type="button" class="btn btn-sm btn-outline-success me-2" (click)="finishDrawing()">
+              <i class="bi bi-check2-all me-1"></i>Cerrar Polígono
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="clearMap()">
+              <i class="bi bi-trash me-1"></i>Borrar Dibujo
+            </button>
+          </div>
+          <div id="wizard-map"></div>
+          <div class="wizard-hint mt-2" *ngIf="drawingPoints.length > 0">
+            <i class="bi bi-geo-alt-fill"></i> {{ drawingPoints.length }} punto(s). Mínimo 3 para cerrar.
+          </div>
+          <div class="wizard-hint mt-2" *ngIf="drawingPoints.length === 0">
+            <i class="bi bi-info-circle"></i> Puedes omitir si no quieres delimitar ahora.
+          </div>
+        </div>
+
+        <!-- ════ PASO 3: Usuarios ════ -->
+        <div class="wizard-step-content" *ngIf="wizardStep === 3">
+
+          <!-- ── Sub-paso: Lista de usuarios ── -->
+          <ng-container *ngIf="userSubStep === 'list'">
+            <h6 class="step-title">
+              <i class="bi bi-people-fill me-2" style="color:#667eea"></i>
+              Usuarios del Barrio
+              <span class="badge-optional">Opcional</span>
+              <span class="ms-2 badge" style="background:#667eea; font-size:12px">{{ wizardUsers.length }} agregado(s)</span>
+            </h6>
+
+            <!-- Lista scrolleable (max-height fijo) -->
+            <div class="user-scroll-list" *ngIf="wizardUsers.length > 0">
+              <div class="user-row" *ngFor="let u of wizardUsers; let i = index">
+                <div class="user-row-avatar"><i class="bi bi-person-fill"></i></div>
+                <div class="user-row-info">
+                  <strong>{{ u.name }} {{ u.last_name }}</strong>
+                  <span>{{ u.email }}</span>
+                  <span *ngIf="u.home_lat" class="text-success" style="font-size:11px">
+                    <i class="bi bi-geo-alt-fill me-1"></i>Domicilio ubicado
+                  </span>
+                </div>
+                <button class="btn btn-sm btn-outline-danger" (click)="removeWizardUser(i)" title="Quitar">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="wizard-hint" *ngIf="wizardUsers.length === 0">
+              <i class="bi bi-info-circle"></i> Aún no hay usuarios. Puedes continuar o agregar los habitantes del barrio.
+            </div>
+
+            <button class="btn btn-outline-primary mt-3" (click)="openUserForm()">
+              <i class="bi bi-person-plus-fill me-2"></i>+ Agregar usuario
+            </button>
+          </ng-container>
+
+          <!-- ── Sub-paso: Formulario de nuevo usuario ── -->
+          <ng-container *ngIf="userSubStep === 'form'">
+            <h6 class="step-title">
+              <i class="bi bi-person-plus-fill me-2" style="color:#667eea"></i>Datos del nuevo usuario
+            </h6>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                <input class="form-control" [(ngModel)]="currentUserForm.name" name="uf_name" placeholder="Nombre">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Apellido <span class="text-danger">*</span></label>
+                <input class="form-control" [(ngModel)]="currentUserForm.last_name" name="uf_last" placeholder="Apellido">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Email <span class="text-danger">*</span></label>
+                <input class="form-control" type="email" [(ngModel)]="currentUserForm.email" name="uf_email" placeholder="correo@ejemplo.com">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Teléfono</label>
+                <input class="form-control" [(ngModel)]="currentUserForm.phone" name="uf_phone" placeholder="0999000000">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Contraseña <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <input class="form-control" [type]="showWizardPassword ? 'text' : 'password'"
+                    [(ngModel)]="currentUserForm.password" name="uf_pwd" placeholder="Mín. 8 chars, letras y números">
+                  <button class="btn btn-outline-secondary" type="button" (click)="showWizardPassword = !showWizardPassword">
+                    <i class="bi" [ngClass]="showWizardPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Dirección <small class="text-muted">(referencia)</small></label>
+                <input class="form-control" [(ngModel)]="currentUserForm.address" name="uf_addr" placeholder="Calle y número...">
+              </div>
+            </div>
+            <div class="text-danger mb-3" *ngIf="userFormError">
+              <i class="bi bi-exclamation-circle me-1"></i>{{ userFormError }}
+            </div>
+            <div class="wizard-hint">
+              <i class="bi bi-info-circle"></i> Al confirmar, podrás ubicar el domicilio de este usuario en el mapa.
+            </div>
+          </ng-container>
+
+          <!-- ── Sub-paso: Domicilio del usuario recién creado ── -->
+          <ng-container *ngIf="userSubStep === 'domicile'">
+            <h6 class="step-title">
+              <i class="bi bi-house-fill me-2 text-info"></i>Domicilio de
+              <strong>{{ wizardUserLabel(currentDomicilioUser!) }}</strong>
+              <span class="badge-optional">Opcional</span>
+            </h6>
+            <p class="text-muted step-hint">Busca la dirección o haz clic directamente en el mapa para marcar el domicilio.</p>
+
+            <div class="mb-2">
+              <div class="input-group">
+                <input class="form-control" placeholder="Ej: Av. Atahualpa y Bolívar, Ibarra"
+                  [(ngModel)]="geoQuery" name="geoQuery"
+                  (keydown.enter)="searchAddress(); $event.preventDefault()">
+                <button class="btn btn-outline-primary" type="button" (click)="searchAddress()" [disabled]="geoLoading">
+                  <i class="bi" [ngClass]="geoLoading ? 'bi-hourglass-split' : 'bi-search'"></i>
+                </button>
+              </div>
+              <div *ngIf="geoResults.length" class="mt-2">
+                <select class="form-select" (change)="pickGeoResult($event)">
+                  <option value="">-- Selecciona un resultado --</option>
+                  <option *ngFor="let r of geoResults; let i = index" [value]="i">{{ r.display_name }}</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="wizard-home-map"></div>
+
+            <div class="wizard-hint mt-2" *ngIf="currentDomicilioUser?.home_lat">
+              <i class="bi bi-geo-alt-fill text-success"></i>
+              Domicilio ubicado: {{ currentDomicilioUser!.home_lat | number:'1.4-4' }}, {{ currentDomicilioUser!.home_lng | number:'1.4-4' }}
+            </div>
+            <div class="wizard-hint mt-2" *ngIf="!currentDomicilioUser?.home_lat">
+              <i class="bi bi-info-circle"></i> Haz clic en el mapa para marcar el domicilio.
+            </div>
+          </ng-container>
+
+        </div><!-- /paso 3 -->
+
+        <!-- ════ PASO 4: Representante + Resumen ════ -->
+        <div class="wizard-step-content" *ngIf="wizardStep === 4">
+          <h6 class="step-title">
+            <i class="bi bi-person-badge-fill me-2 text-warning"></i>Representante del Barrio
+            <span class="badge-optional">Opcional</span>
+          </h6>
+
+          <div *ngIf="wizardUsers.length === 0" class="wizard-hint mb-4">
+            <i class="bi bi-info-circle"></i> No se crearon usuarios en este barrio. Puedes asignar un representante después desde el CRUD de barrios.
+          </div>
+
+          <div *ngIf="wizardUsers.length > 0" class="mb-4">
+            <p class="text-muted" style="font-size:13px">
+              El usuario seleccionado obtendrá el rol <strong>Admin Barrio</strong> automáticamente.
+            </p>
+
+            <!-- Buscador -->
+            <div class="input-group mb-2">
+              <span class="input-group-text" style="background:white; border-right:none">
+                <i class="bi bi-search text-muted"></i>
+              </span>
+              <input class="form-control" style="border-left:none" placeholder="Buscar usuario por nombre o email..."
+                [(ngModel)]="repSearchText" name="repSearch">
+            </div>
+
+            <!-- Lista scrolleable filtrada -->
+            <div class="rep-scroll-list">
+              <div *ngFor="let item of filteredWizardUsers"
+                class="rep-item" [class.selected]="wizardRepresentanteIdx === item.index"
+                (click)="wizardRepresentanteIdx = (wizardRepresentanteIdx === item.index ? null : item.index)">
+                <div class="rep-avatar"><i class="bi bi-person-fill"></i></div>
+                <div class="rep-info">
+                  <strong>{{ item.user.name }} {{ item.user.last_name }}</strong>
+                  <span>{{ item.user.email }}</span>
+                </div>
+                <div class="rep-check">
+                  <i class="bi" [ngClass]="wizardRepresentanteIdx === item.index ? 'bi-check-circle-fill' : 'bi-circle'"></i>
+                </div>
+              </div>
+              <div *ngIf="filteredWizardUsers.length === 0" class="text-center text-muted py-3" style="font-size:13px">
+                No se encontraron usuarios con ese criterio.
+              </div>
+            </div>
+
+            <small class="text-muted d-block mt-2">
+              <i class="bi bi-info-circle me-1"></i>Haz clic para seleccionar · Haz clic de nuevo para deseleccionar.
+            </small>
+          </div>
+
+          <!-- Resumen final -->
+          <div class="summary-card">
+            <h6 class="summary-title"><i class="bi bi-clipboard-check me-2"></i>Resumen</h6>
+            <div class="summary-row">
+              <span class="summary-label">Barrio</span>
+              <span class="summary-value"><strong>{{ wizardData.name }}</strong></span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Descripción</span>
+              <span class="summary-value">{{ wizardData.description || '—' }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">UPC</span>
+              <span class="summary-value">{{ getUpcName(wizardData.upc_id) }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Mapa</span>
+              <span class="summary-value">
+                <span *ngIf="drawingPoints.length >= 3" class="text-success"><i class="bi bi-check-circle-fill me-1"></i>{{ drawingPoints.length }} puntos</span>
+                <span *ngIf="drawingPoints.length < 3" class="text-muted">Sin delimitar</span>
+              </span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Usuarios</span>
+              <span class="summary-value">{{ wizardUsers.length }} usuario(s) a crear</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Representante</span>
+              <span class="summary-value">
+                <span *ngIf="wizardRepresentanteIdx !== null" class="text-success">
+                  <i class="bi bi-person-badge-fill me-1"></i>
+                  {{ wizardUsers[wizardRepresentanteIdx]?.name }} {{ wizardUsers[wizardRepresentanteIdx]?.last_name }}
+                </span>
+                <span *ngIf="wizardRepresentanteIdx === null" class="text-muted">— Sin representante</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /wizard-body -->
+
+      <!-- Footer -->
+      <div class="modal-footer wizard-footer">
+        <button class="btn btn-light" (click)="closeWizard()">Cancelar</button>
+
+        <div class="d-flex gap-2 align-items-center">
+
+          <!-- Atrás (deshabilitado en sub-pasos de formulario y domicile se maneja distinto) -->
+          <button class="btn btn-outline-secondary"
+            *ngIf="wizardStep > 1 && !(wizardStep === 3 && userSubStep !== 'list')"
+            (click)="wizardBack()">
+            <i class="bi bi-arrow-left me-1"></i>Atrás
+          </button>
+
+          <!-- Sub-paso form: Cancelar / Confirmar usuario -->
+          <ng-container *ngIf="wizardStep === 3 && userSubStep === 'form'">
+            <button class="btn btn-outline-secondary" (click)="cancelUserForm()">
+              <i class="bi bi-x me-1"></i>Cancelar
+            </button>
+            <button class="btn btn-success" (click)="confirmUserForm()">
+              <i class="bi bi-check2 me-1"></i>Confirmar usuario
+            </button>
+          </ng-container>
+
+          <!-- Sub-paso domicile: Omitir / Guardar domicilio -->
+          <ng-container *ngIf="wizardStep === 3 && userSubStep === 'domicile'">
+            <button class="btn btn-outline-secondary" (click)="skipDomicile()">
+              <i class="bi bi-skip-forward me-1"></i>Omitir domicilio
+            </button>
+            <button class="btn btn-primary" (click)="confirmDomicile()">
+              <i class="bi bi-check2 me-1"></i>
+              {{ currentDomicilioUser?.home_lat ? 'Guardar domicilio' : 'Continuar sin domicilio' }}
+            </button>
+          </ng-container>
+
+          <!-- Siguiente (solo en list sub-step o pasos 1 y 2) -->
+          <button class="btn btn-primary"
+            *ngIf="wizardStep < 4 && (wizardStep !== 3 || userSubStep === 'list')"
+            (click)="wizardNext()">
+            Siguiente <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+
+          <!-- Guardar (paso 4) -->
+          <button class="btn btn-success" *ngIf="wizardStep === 4" (click)="wizardSave()" [disabled]="wizardLoading">
+            <span *ngIf="!wizardLoading"><i class="bi bi-check-circle me-1"></i>Crear Barrio</span>
+            <span *ngIf="wizardLoading"><i class="bi bi-hourglass-split me-1"></i>Guardando...</span>
+          </button>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════ MODAL EDITAR ═══════════════════ -->
 <div class="modal fade" id="modalNeighborhood" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-  <div class="modal-dialog modal-lg"> <div class="modal-content">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
       <div class="modal-header text-white" style="background: #667eea;">
-        <h5 class="modal-title">{{ modalMode === 'add' ? 'Nuevo Barrio' : 'Editar Barrio' }}</h5>
+        <h5 class="modal-title">Editar Barrio</h5>
         <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
       </div>
       <div class="modal-body">
@@ -76,10 +471,9 @@
               <label class="form-label">Descripción</label>
               <input class="form-control" [(ngModel)]="selected.description" name="description">
             </div>
-
             <div class="col-md-6 mb-3">
               <label class="form-label">Número Chip Alarma (Para Twilio)</label>
-              <input class="form-control" [(ngModel)]="selected.alarm_number" name="alarm_number" placeholder="Ej: +593961662731">
+              <input class="form-control" [(ngModel)]="selected.alarm_number" name="alarm_number" placeholder="+593961662731">
             </div>
             <div class="col-md-6 mb-3">
               <label class="form-label">UPC Asignada</label>
@@ -88,17 +482,28 @@
                 <option *ngFor="let u of upcs" [value]="u.upc_id">{{ u.name }}</option>
               </select>
             </div>
-
+            <div class="col-12 mb-3">
+              <label class="form-label d-flex align-items-center gap-2">
+                <i class="bi bi-person-badge text-success"></i>
+                Representante del Barrio
+              </label>
+              <select class="form-select" [(ngModel)]="selectedAdminId" name="selectedAdminId">
+                <option [ngValue]="null">-- Sin representante --</option>
+                <option *ngFor="let a of admins" [ngValue]="a.user_id">{{ adminLabel(a) }}</option>
+              </select>
+              <small class="text-muted">El representante es el usuario con rol "Admin Barrio".</small>
+            </div>
             <div class="col-12 mt-2">
               <label class="form-label d-flex justify-content-between align-items-center">
                 <span>Delimitación del Barrio en el Mapa</span>
                 <div>
-                   <button type="button" class="btn btn-sm btn-outline-secondary me-2" (click)="finishDrawing()">Cerrar Polígono</button>
-                   <button type="button" class="btn btn-sm btn-outline-danger" (click)="clearMap()">Borrar Dibujo</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary me-2" (click)="finishDrawing()">Cerrar Polígono</button>
+                  <button type="button" class="btn btn-sm btn-outline-danger" (click)="clearMap()">Borrar Dibujo</button>
                 </div>
               </label>
-              <p class="text-muted" style="font-size: 12px; margin-bottom: 8px;">Haz clic en el mapa para delimitar el área. Haz doble clic en un vértice para borrarlo.</p>
-              
+              <p class="text-muted" style="font-size: 12px; margin-bottom: 8px;">
+                Haz clic en el mapa para delimitar el área. Doble clic en un vértice para borrarlo.
+              </p>
               <div id="neighborhood-map"></div>
             </div>
           </div>
