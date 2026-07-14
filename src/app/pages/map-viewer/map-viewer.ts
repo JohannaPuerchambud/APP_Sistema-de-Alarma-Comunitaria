@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import * as L from 'leaflet';
 import { NeighborhoodService } from '../../core/services/neighborhood';
 import { UserService } from '../../core/services/user';
@@ -83,29 +84,21 @@ export class MapViewerComponent implements OnInit, OnDestroy {
     this.map.addLayer(this.userMarkersLayer); // Añadimos la capa de casitas
   }
 
-loadData() {
-    // 1. Cargar Barrios
-    this.neighborhoodService.getAll().subscribe({
-      next: (res) => {
-        this.neighborhoods = res;
+  loadData() {
+    forkJoin({
+      neighborhoods: this.neighborhoodService.getAll(),
+      users: this.userService.getAll(),
+      reports: this.reportService.getAll(),
+    }).subscribe({
+      next: ({ neighborhoods, users, reports }) => {
+        this.neighborhoods = neighborhoods;
+        this.allUsers = users;
+        this.allReports = reports;
         this.drawAllNeighborhoods();
       },
-      error: (err) => console.error(err)
-    });
-
-    // 2. Cargar Usuarios
-    this.userService.getAll().subscribe({
-      next: (res) => { this.allUsers = res; },
-      error: (err) => console.error(err)
-    });
-
-    // 3. Cargar Reportes (usa ReportService con token JWT)
-    this.reportService.getAll().subscribe({
-      next: (res) => { this.allReports = res; },
-      error: (err) => console.error('Error al cargar reportes:', err)
+      error: (err) => console.error('Error al cargar los datos del mapa:', err),
     });
   }
-
   drawAllNeighborhoods() {
     this.allLayers.clearLayers();
     this.layerMap = {};
