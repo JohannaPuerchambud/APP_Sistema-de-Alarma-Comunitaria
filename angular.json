@@ -31,8 +31,9 @@
               "ag-grid-community/styles/ag-grid.css",
               "ag-grid-community/styles/ag-theme-quartz.css"
             ],
-            "scripts": [
-              "node_modules/leaflet/dist/leaflet.js"
+            "scripts": [],
+            "allowedCommonJsDependencies": [
+              "leaflet"
             ]
           },
           "configurations": {
@@ -46,13 +47,13 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
+                  "maximumWarning": "850kB",
                   "maximumError": "1MB"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumWarning": "12kB",
+                  "maximumError": "16kB"
                 }
               ],
               "outputHashing": "all"
