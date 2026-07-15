@@ -28,7 +28,21 @@ export class NeighborhoodService {
     return this.http.get<any>(`${this.apiUrl}/${id}`);
   }
 
-  setAdmin(neighborhoodId: number, adminUserId: number | null): Observable<any> {
-    return this.http.put(`${this.apiUrl}/${neighborhoodId}/admin`, { admin_user_id: adminUserId });
+  setAdmin(neighborhoodId: number, adminUserId: number | null, promote = false): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${neighborhoodId}/admin`, {
+      admin_user_id: adminUserId,
+      promote,
+    });
+  }
+
+  updateUsers(
+    neighborhoodId: number,
+    userIds: number[],
+    action: 'add' | 'remove',
+  ): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${neighborhoodId}/users`, {
+      user_ids: userIds,
+      action,
+    });
   }
 }

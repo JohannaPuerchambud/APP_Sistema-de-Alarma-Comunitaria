@@ -18,16 +18,11 @@ export const routes: Routes = [
       },
       {
         path: 'neighborhoods',
-        canActivate: [roleGuard([1])],
+        canActivate: [roleGuard([1, 2])],
         loadComponent: () =>
           import('./pages/neighborhoods/neighborhoods').then((m) => m.Neighborhoods),
       },
-      {
-        path: 'map-viewer',
-        canActivate: [roleGuard([1, 2])],
-        loadComponent: () =>
-          import('./pages/map-viewer/map-viewer').then((m) => m.MapViewerComponent),
-      },
+      { path: 'map-viewer', redirectTo: 'neighborhoods', pathMatch: 'full' },
       {
         path: 'upcs',
         canActivate: [roleGuard([1])],

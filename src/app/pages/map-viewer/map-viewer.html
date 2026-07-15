@@ -1,89 +1,164 @@
-<div class="container mt-4">
-  <div class="page-header">
-    <h4 class="m-0">Usuarios por Barrio</h4>
+<section class="neighborhood-dashboard" [class.embedded]="embedded">
+  <div class="dashboard-title" *ngIf="!embedded">
+    <div>
+      <span class="eyebrow">Supervisión territorial</span>
+      <h2>Panel del barrio</h2>
+    </div>
+    <select class="form-select" [value]="selectedNeighborhoodId" (change)="onSelectNeighborhood($event)">
+      <option value="0">Selecciona un barrio</option>
+      <option *ngFor="let neighborhood of neighborhoods" [value]="neighborhood.neighborhood_id">
+        {{ neighborhood.name }}
+      </option>
+    </select>
   </div>
 
-  <div class="search-container mb-4">
-    <div class="row align-items-center">
-      <div class="col-md-6">
-        <label class="form-label font-weight-bold">Seleccionar Barrio:</label>
-        <select class="form-select form-select-lg" (change)="onSelectNeighborhood($event)">
-          <option value="0">-- Ver Mapa General --</option>
-          <option *ngFor="let n of neighborhoods" [value]="n.neighborhood_id">{{ n.name }}</option>
+  <div class="dashboard-state" *ngIf="loading">
+    <div class="spinner-border text-primary" role="status"></div>
+    <span>Cargando información del barrio...</span>
+  </div>
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <ng-container *ngIf="!loading && selectedNeighborhoodInfo">
+    <header class="detail-header">
+      <div>
+        <span class="eyebrow">Barrio seleccionado</span>
+        <h2>{{ selectedNeighborhoodInfo.name }}</h2>
+        <p>{{ selectedNeighborhoodInfo.description || 'Sin descripción registrada.' }}</p>
+      </div>
+      <span class="status-chip"><i class="bi bi-geo-alt-fill"></i> Activo</span>
+    </header>
+
+    <div class="metrics-grid">
+      <article class="metric-card residents">
+        <i class="bi bi-people-fill"></i>
+        <div><span>Habitantes</span><strong>{{ neighborhoodUsers.length }}</strong></div>
+      </article>
+      <article class="metric-card representative">
+        <i class="bi bi-person-badge-fill"></i>
+        <div><span>Representante</span><strong>{{ representative ? representative.name : 'Pendiente' }}</strong></div>
+      </article>
+      <article class="metric-card reports">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <div><span>Reportes</span><strong>{{ neighborhoodReports.length }}</strong></div>
+      </article>
+      <article class="metric-card location">
+        <i class="bi bi-broadcast-pin"></i>
+        <div><span>Alarma</span><strong>{{ selectedNeighborhoodInfo.alarm_number || 'Sin configurar' }}</strong></div>
+      </article>
+    </div>
+
+    <nav class="detail-tabs" aria-label="Secciones del barrio">
+      <button [class.active]="activeTab === 'summary'" (click)="setTab('summary')">
+        <i class="bi bi-grid-1x2-fill"></i> Resumen
+      </button>
+      <button [class.active]="activeTab === 'residents'" (click)="setTab('residents')">
+        <i class="bi bi-people-fill"></i> Habitantes
+      </button>
+      <button [class.active]="activeTab === 'reports'" (click)="setTab('reports')">
+        <i class="bi bi-clipboard2-pulse-fill"></i> Reportes
+      </button>
+    </nav>
+
+    <div class="alert alert-info py-2" *ngIf="feedbackMessage">{{ feedbackMessage }}</div>
+
+    <section class="summary-grid" [hidden]="activeTab !== 'summary'">
+      <article class="panel map-panel">
+        <div class="panel-heading">
+          <div><span class="eyebrow">Ubicación</span><h3>Mapa de habitantes</h3></div>
+          <span class="map-legend"><i></i> Domicilios registrados</span>
+        </div>
+        <div id="map-viewer-id"></div>
+      </article>
+
+      <article class="panel activity-panel">
+        <div class="panel-heading">
+          <div><span class="eyebrow">Actividad</span><h3>Reportes recientes</h3></div>
+          <button class="link-button" (click)="setTab('reports')">Ver todos</button>
+        </div>
+        <div class="activity-list" *ngIf="recentReports.length; else noRecentReports">
+          <article class="activity-item" *ngFor="let report of recentReports">
+            <div class="activity-icon"><i class="bi bi-exclamation-lg"></i></div>
+            <div>
+              <strong>{{ report.title }}</strong>
+              <span>{{ report.name }} {{ report.last_name || '' }}</span>
+              <time>{{ report.created_at | date:'dd/MM/yyyy HH:mm' }}</time>
+            </div>
+          </article>
+        </div>
+        <ng-template #noRecentReports>
+          <div class="empty-compact"><i class="bi bi-shield-check"></i><p>No existen reportes en este barrio.</p></div>
+        </ng-template>
+      </article>
+    </section>
+
+    <section class="panel residents-panel" [hidden]="activeTab !== 'residents'">
+      <div class="panel-heading residents-toolbar">
+        <div><span class="eyebrow">Directorio</span><h3>Habitantes del barrio</h3></div>
+        <button *ngIf="canManage" class="btn btn-primary" (click)="openAssignmentModal()">
+          <i class="bi bi-person-plus-fill"></i> Asignar habitantes
+        </button>
+      </div>
+      <div class="filters-row">
+        <div class="search-field"><i class="bi bi-search"></i><input class="form-control" placeholder="Buscar por nombre, correo o teléfono" [(ngModel)]="residentSearch" (input)="onResidentSearch()"></div>
+        <select class="form-select page-size" [(ngModel)]="residentsPerPage" (change)="onResidentSearch()">
+          <option [ngValue]="10">10 por página</option><option [ngValue]="25">25 por página</option><option [ngValue]="50">50 por página</option>
         </select>
       </div>
-      <div class="col-md-6 text-muted">
-        <small>Seleccione un barrio para ver su delimitación, el representante, la cantidad de reportes (alarmas) y los habitantes en el mapa.</small>
-      </div>
-    </div>
-  </div>
 
-  <div class="row mb-4" *ngIf="selectedNeighborhoodInfo">
-    <div class="col-md-4">
-      <div class="card shadow-sm" style="border-left: 4px solid #667eea;">
-        <div class="card-body text-center">
-          <h6 class="text-uppercase mb-1" style="color: #667eea; font-weight: 600; font-size: 13px;">Barrio</h6>
-          <h5 class="font-weight-bold mb-0">{{ selectedNeighborhoodInfo.name }}</h5>
-        </div>
+      <div class="responsive-table" *ngIf="paginatedResidents.length; else noResidents">
+        <table>
+          <thead><tr><th>Habitante</th><th>Contacto</th><th>Rol</th><th>Ubicación</th><th *ngIf="canManage">Acciones</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let user of paginatedResidents">
+              <td data-label="Habitante"><div class="person-cell"><span class="avatar">{{ (user.name || '?')[0] }}</span><div><strong>{{ user.name }} {{ user.last_name || '' }}</strong><small>#{{ user.user_id }}</small></div></div></td>
+              <td data-label="Contacto"><strong>{{ user.email }}</strong><small>{{ user.phone || 'Sin teléfono' }}</small></td>
+              <td data-label="Rol"><span class="role-badge" [class.rep]="user.role_id === 2">{{ user.role_id === 2 ? 'Representante' : 'Habitante' }}</span></td>
+              <td data-label="Ubicación"><button class="icon-action" [disabled]="!user.home_lat" (click)="focusResident(user)" title="Ver domicilio"><i class="bi bi-geo-alt-fill"></i></button></td>
+              <td data-label="Acciones" *ngIf="canManage"><button class="icon-action danger" (click)="removeResident(user)" title="Retirar del barrio"><i class="bi bi-person-dash-fill"></i></button></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card shadow-sm" style="border-left: 4px solid #198754;">
-        <div class="card-body text-center">
-          <h6 class="text-success text-uppercase mb-1" style="font-weight: 600; font-size: 13px;">Representante</h6>
-          <h5 class="font-weight-bold mb-0">
-            {{ representative ? representative.name + ' ' + (representative.last_name || '') : 'No asignado' }}
-          </h5>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card shadow-sm" style="border-left: 4px solid #dc3545;">
-        <div class="card-body text-center">
-          <h6 class="text-danger text-uppercase mb-1" style="font-weight: 600; font-size: 13px;">Alarmas (Reportes)</h6>
-          <h5 class="font-weight-bold mb-0">{{ reportCount }} reportes emitidos</h5>
-        </div>
-      </div>
-    </div>
-  </div>
+      <ng-template #noResidents><div class="empty-state"><i class="bi bi-houses"></i><h4>No hay habitantes</h4><p>Asigna usuarios existentes o agrégalos durante la creación del barrio.</p></div></ng-template>
 
-  <div class="row">
-    <div [ngClass]="selectedNeighborhoodInfo ? 'col-lg-8' : 'col-lg-12'">
-      <div class="table-container p-2">
-        <div id="map-viewer-id"></div>
+      <div class="pagination-bar" *ngIf="residentsTotalPages > 1">
+        <span>{{ filteredResidents.length }} resultado(s)</span>
+        <div><button (click)="changeResidentsPage(residentsPage - 1)" [disabled]="residentsPage === 1">‹</button><button *ngFor="let page of residentPageNumbers" [class.active]="page === residentsPage" (click)="changeResidentsPage(page)">{{ page }}</button><button (click)="changeResidentsPage(residentsPage + 1)" [disabled]="residentsPage === residentsTotalPages">›</button></div>
       </div>
-    </div>
+    </section>
 
-    <div class="col-lg-4" *ngIf="selectedNeighborhoodInfo">
-      <div class="card shadow-sm h-100" style="border-radius: 12px; border: none;">
-        <div class="card-header bg-white" style="border-radius: 12px 12px 0 0; padding: 20px;">
-          <h5 class="m-0 font-weight-bold" style="font-size: 16px; color: #2c3e50;">
-            <i class="bi bi-people-fill me-2 text-primary"></i> Habitantes ({{ neighborhoodUsers.length }})
-          </h5>
-        </div>
-        <div class="card-body p-0" style="height: 540px; overflow-y: auto;">
-          <ul class="list-group list-group-flush">
-            <li class="list-group-item px-4 py-3" *ngFor="let u of neighborhoodUsers">
-              <div class="d-flex align-items-center">
-                <div class="bg-light rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 40px; height: 40px;">
-                  <i class="bi bi-person-fill" style="font-size: 20px; color: #a0aabf;"></i>
-                </div>
-                <div>
-                  <strong style="font-size: 14px; color: #2c3e50;">{{ u.name }} {{ u.last_name || '' }}</strong>
-                  <div style="margin-top: 2px;">
-                    <span *ngIf="u.role_id === 2" class="badge bg-success" style="font-size: 10px; padding: 4px 6px;">Representante</span>
-                    <span *ngIf="u.role_id !== 2" class="badge bg-secondary" style="font-size: 10px; padding: 4px 6px;">Habitante</span>
-                  </div>
-                </div>
-              </div>
-            </li>
-            <li class="list-group-item text-center py-5 text-muted" *ngIf="neighborhoodUsers.length === 0">
-              <i class="bi bi-house-x" style="font-size: 30px; display: block; margin-bottom: 10px;"></i>
-              No hay habitantes registrados en este barrio.
-            </li>
-          </ul>
-        </div>
+    <section class="panel reports-panel" [hidden]="activeTab !== 'reports'">
+      <div class="panel-heading"><div><span class="eyebrow">Seguimiento</span><h3>Reportes del barrio</h3></div><span class="count-chip">{{ neighborhoodReports.length }} total</span></div>
+      <div class="report-grid" *ngIf="neighborhoodReports.length; else noReports">
+        <article class="report-card" *ngFor="let report of neighborhoodReports">
+          <div class="report-card-header"><span class="report-icon"><i class="bi bi-exclamation-triangle-fill"></i></span><time>{{ report.created_at | date:'dd/MM/yyyy HH:mm' }}</time></div>
+          <h4>{{ report.title }}</h4><p>{{ report.description || 'Sin descripción.' }}</p>
+          <footer><span><i class="bi bi-person-fill"></i> {{ report.name }} {{ report.last_name || '' }}</span><a *ngIf="report.image_url" [href]="report.image_url" target="_blank" rel="noopener">Ver evidencia</a></footer>
+        </article>
       </div>
-    </div>
+      <ng-template #noReports><div class="empty-state"><i class="bi bi-shield-check"></i><h4>Sin reportes</h4><p>El barrio no registra actividad reportada.</p></div></ng-template>
+    </section>
+  </ng-container>
+
+  <div class="empty-state panel" *ngIf="!loading && !selectedNeighborhoodInfo">
+    <i class="bi bi-map"></i><h3>Selecciona un barrio</h3><p>El detalle mostrará habitantes, mapa, representante y reportes.</p>
   </div>
+</section>
+
+<div class="modal fade" id="assignResidentsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+    <div class="modal-header"><div><span class="eyebrow">Barrio {{ selectedNeighborhoodInfo?.name }}</span><h5 class="modal-title">Asignar habitantes existentes</h5></div><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <div class="search-field mb-3"><i class="bi bi-search"></i><input class="form-control" placeholder="Buscar usuario sin barrio" [(ngModel)]="assignmentSearch"></div>
+      <p class="selection-summary">{{ selectedAssignmentIds.size }} seleccionado(s). Solo se muestran usuarios con rol Habitante y sin barrio.</p>
+      <div class="assignment-list" *ngIf="assignableUsers.length; else noAssignable">
+        <label class="assignment-item" *ngFor="let user of assignableUsers" [class.selected]="selectedAssignmentIds.has(user.user_id)">
+          <input type="checkbox" [checked]="selectedAssignmentIds.has(user.user_id)" (change)="toggleAssignment(user.user_id)">
+          <span class="avatar">{{ (user.name || '?')[0] }}</span><span><strong>{{ user.name }} {{ user.last_name || '' }}</strong><small>{{ user.email }}</small></span>
+        </label>
+      </div>
+      <ng-template #noAssignable><div class="empty-compact"><i class="bi bi-person-check"></i><p>No hay usuarios disponibles.</p></div></ng-template>
+    </div>
+    <div class="modal-footer"><button class="btn btn-light" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" [disabled]="selectedAssignmentIds.size === 0 || savingAssignments" (click)="saveAssignments()">{{ savingAssignments ? 'Asignando...' : 'Asignar seleccionados' }}</button></div>
+  </div></div>
 </div>

@@ -7,6 +7,8 @@ import { UserService } from '../../core/services/user';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import * as L from 'leaflet';
+import { MapViewerComponent } from '../map-viewer/map-viewer';
+import { AuthService } from '../../core/auth/auth.service';
 
 declare var bootstrap: any;
 
@@ -35,7 +37,7 @@ export interface WizardUser {
 @Component({
   selector: 'app-neighborhoods',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MapViewerComponent],
   templateUrl: './neighborhoods.html',
   styleUrl: './neighborhoods.css'
 })
@@ -60,6 +62,8 @@ export class Neighborhoods implements OnInit {
   public searchText = '';
   public currentPage = 1;
   public itemsPerPage = 5;
+  public selectedNeighborhoodId: number | null = null;
+  public detailRefresh = 0;
 
   // ── Boundary map ──────────────────────────────────────────────────────────
   private map: L.Map | null = null;
@@ -85,6 +89,12 @@ export class Neighborhoods implements OnInit {
   public userSubStep: 'list' | 'form' | 'domicile' = 'list';
 
   public wizardUsers: WizardUser[] = [];
+  public assignableUsers: any[] = [];
+  public selectedExistingUserIds = new Set<number>();
+  public existingUserSearch = '';
+  public existingUsersPage = 1;
+  public existingUsersPerPage = 5;
+  public wizardRepresentativeKey: string | null = null;
   public currentUserForm: WizardUser = this.emptyUserForm();
   public showWizardPassword = false;
   public passwordPattern = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
@@ -110,17 +120,39 @@ export class Neighborhoods implements OnInit {
     private service: NeighborhoodService,
     private upcService: UpcService,
     private userService: UserService,
-    private http: HttpClient
+    private http: HttpClient,
+    private auth: AuthService
   ) {}
 
-  ngOnInit(): void { this.load(); this.loadUpcs(); this.loadAdmins(); }
+  ngOnInit(): void {
+    this.load();
+    if (this.isAdminGeneral) {
+      this.loadUpcs();
+      this.loadAdmins();
+      this.loadAssignableUsers();
+    }
+  }
+
+  get isAdminGeneral(): boolean { return this.auth.isAdminGeneral(); }
+
+  selectNeighborhood(id: number): void {
+    this.selectedNeighborhoodId = id;
+  }
 
   // ── Data loading ─────────────────────────────────────────────────────────
 
   load() {
     this.loading = true;
     this.service.getAll().subscribe({
-      next: (res) => { this.masterList = res; this.applyFilters(); this.loading = false; },
+      next: (res) => {
+        this.masterList = res;
+        this.applyFilters();
+        if (!this.selectedNeighborhoodId || !res.some((item: any) => Number(item.neighborhood_id) === Number(this.selectedNeighborhoodId))) {
+          this.selectedNeighborhoodId = res[0]?.neighborhood_id ?? null;
+        }
+        this.detailRefresh++;
+        this.loading = false;
+      },
       error: (err) => { console.error(err); this.loading = false; }
     });
   }
@@ -133,6 +165,101 @@ export class Neighborhoods implements OnInit {
     this.userService.getAdmins().subscribe({ next: (res) => this.admins = res, error: console.error });
   }
 
+  loadAssignableUsers() {
+    this.userService.getAll().subscribe({
+      next: (users) => this.assignableUsers = users,
+      error: (error) => console.error(error),
+    });
+  }
+
+  get filteredAssignableUsers(): any[] {
+    const query = this.existingUserSearch.trim().toLowerCase();
+    return this.assignableUsers.filter((user) => {
+      const available = Number(user.role_id) === 3 && !user.neighborhood_id;
+      const matches = !query || [user.name, user.last_name, user.email, user.phone]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query));
+      return available && matches;
+    });
+  }
+
+  get paginatedAssignableUsers(): any[] {
+    const start = (this.existingUsersPage - 1) * this.existingUsersPerPage;
+    return this.filteredAssignableUsers.slice(start, start + this.existingUsersPerPage);
+  }
+
+  get existingUsersTotalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredAssignableUsers.length / this.existingUsersPerPage));
+  }
+
+  changeExistingUsersPage(page: number): void {
+    if (page < 1 || page > this.existingUsersTotalPages) return;
+    this.existingUsersPage = page;
+  }
+
+  onExistingUserSearch(): void { this.existingUsersPage = 1; }
+
+  toggleExistingUser(userId: number): void {
+    if (this.selectedExistingUserIds.has(userId)) {
+      this.selectedExistingUserIds.delete(userId);
+      if (this.wizardRepresentativeKey === `existing:${userId}`) this.wizardRepresentativeKey = null;
+    } else {
+      this.selectedExistingUserIds.add(userId);
+    }
+  }
+
+  get representativeCandidates(): any[] {
+    const selectedExisting = this.assignableUsers
+      .filter((user) => this.selectedExistingUserIds.has(Number(user.user_id)))
+      .map((user) => ({ ...user, key: `existing:${user.user_id}`, source: 'existing' }));
+    const pendingUsers = this.wizardUsers.map((user, index) => ({
+      ...user,
+      key: `new:${index}`,
+      source: 'new',
+      user_id: null,
+    }));
+    const existingAdmins = this.admins.map((user) => ({
+      ...user,
+      key: `admin:${user.user_id}`,
+      source: 'admin',
+    }));
+    return [...selectedExisting, ...pendingUsers, ...existingAdmins];
+  }
+
+  get filteredRepresentativeCandidates(): any[] {
+    const query = this.repSearchText.trim().toLowerCase();
+    return this.representativeCandidates.filter((user) =>
+      !query || [user.name, user.last_name, user.email]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query)),
+    );
+  }
+
+  get selectedRepresentative(): any | null {
+    return this.representativeCandidates.find((user) => user.key === this.wizardRepresentativeKey) || null;
+  }
+
+  selectRepresentative(candidate: any): void {
+    if (this.wizardRepresentativeKey === candidate.key) {
+      this.wizardRepresentativeKey = null;
+      return;
+    }
+    if (candidate.source === 'existing') {
+      const accepted = confirm(
+        'Este habitante cambiará al rol Representante (Admin Barrio). ' +
+        'Conservará el acceso a la aplicación móvil, chat, reportes y alertas de su barrio. Después deberá iniciar sesión nuevamente para actualizar sus permisos. ¿Continuar?',
+      );
+      if (!accepted) return;
+    }
+    if (candidate.source === 'admin' && candidate.neighborhood_id) {
+      const accepted = confirm(
+        `Este representante está asignado a ${candidate.neighborhood_name || 'otro barrio'}. ` +
+        'Se trasladará al nuevo barrio. ¿Continuar?',
+      );
+      if (!accepted) return;
+    }
+    this.wizardRepresentativeKey = candidate.key;
+  }
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   adminLabel(admin: any): string {
@@ -208,6 +335,10 @@ export class Neighborhoods implements OnInit {
     this.wizardData = { name: '', description: '', alarm_number: '', upc_id: '', boundary: '' };
     this.wizardUsers = [];
     this.wizardRepresentanteIdx = null;
+    this.wizardRepresentativeKey = null;
+    this.selectedExistingUserIds.clear();
+    this.existingUserSearch = '';
+    this.existingUsersPage = 1;
     this.repSearchText = '';
     this.wizardLoading = false;
     this.userSubStep = 'list';
@@ -248,6 +379,7 @@ export class Neighborhoods implements OnInit {
       this.userSubStep = 'list';
       this.destroyHomeMap();
       this.wizardRepresentanteIdx = null;
+      this.wizardRepresentativeKey = null;
       this.repSearchText = '';
       this.wizardStep = 4;
       return;
@@ -310,13 +442,18 @@ export class Neighborhoods implements OnInit {
     setTimeout(() => this.initHomeMap(), 200);
   }
 
-  removeWizardUser(i: number) {
-    this.wizardUsers.splice(i, 1);
-    if (this.wizardRepresentanteIdx === i) this.wizardRepresentanteIdx = null;
-    else if (this.wizardRepresentanteIdx !== null && this.wizardRepresentanteIdx > i)
+  removeWizardUser(index: number) {
+    this.wizardUsers.splice(index, 1);
+    if (this.wizardRepresentanteIdx === index) this.wizardRepresentanteIdx = null;
+    else if (this.wizardRepresentanteIdx !== null && this.wizardRepresentanteIdx > index)
       this.wizardRepresentanteIdx--;
-  }
 
+    if (this.wizardRepresentativeKey?.startsWith('new:')) {
+      const selectedIndex = Number(this.wizardRepresentativeKey.split(':')[1]);
+      if (selectedIndex === index) this.wizardRepresentativeKey = null;
+      else if (selectedIndex > index) this.wizardRepresentativeKey = `new:${selectedIndex - 1}`;
+    }
+  }
   // ════════════════════════════════════════════════════════════════════════
   // WIZARD STEP 3 — DOMICILE SUB-STEP
   // ════════════════════════════════════════════════════════════════════════
@@ -400,44 +537,105 @@ export class Neighborhoods implements OnInit {
     this.wizardLoading = true;
     this.service.create(this.wizardData).subscribe({
       next: (saved: any) => {
-        const nId = saved?.neighborhood_id;
-        if (!this.wizardUsers.length) { this.finishWizard(nId, null); return; }
-        this.createUsersSequentially(nId, 0, []);
+        const neighborhoodId = Number(saved?.neighborhood_id);
+        this.assignExistingUsersAndContinue(neighborhoodId);
       },
-      error: (err: any) => {
+      error: (error: any) => {
         this.wizardLoading = false;
-        alert(err.error?.message || err.error?.error || 'Error al crear el barrio');
-      }
+        alert(error.error?.message || error.error?.error || 'Error al crear el barrio');
+      },
     });
   }
 
-  private createUsersSequentially(nId: number, i: number, ids: number[]) {
-    if (i >= this.wizardUsers.length) {
-      const repId = this.wizardRepresentanteIdx !== null ? ids[this.wizardRepresentanteIdx] : null;
-      this.finishWizard(nId, repId);
+  private assignExistingUsersAndContinue(neighborhoodId: number): void {
+    const userIds = [...this.selectedExistingUserIds];
+    if (userIds.length === 0) {
+      this.createUsersSequentially(neighborhoodId, 0, []);
       return;
     }
-    const data = { ...this.wizardUsers[i], neighborhood_id: nId, role_id: 3 };
-    this.userService.create(data).subscribe({
-      next: (res: any) => { ids.push(res?.user_id ?? null); this.createUsersSequentially(nId, i + 1, ids); },
-      error: (err: any) => {
-        alert((err.error?.message || `Error al crear usuario ${i + 1}`) + '\nEl barrio fue creado. Agrega usuarios desde el CRUD.');
-        this.wizardLoading = false; this.load(); this.closeWizard();
-      }
+    this.service.updateUsers(neighborhoodId, userIds, 'add').subscribe({
+      next: () => this.createUsersSequentially(neighborhoodId, 0, []),
+      error: (error: any) => {
+        this.wizardLoading = false;
+        alert(
+          (error.error?.message || 'No se pudieron asignar los usuarios existentes.') +
+          '\nEl barrio fue creado y puedes completar la asignación desde su detalle.',
+        );
+        this.selectedNeighborhoodId = neighborhoodId;
+        this.load();
+        this.closeWizard();
+      },
     });
   }
 
-  private finishWizard(nId: number, repId: number | null) {
-    if (repId && nId) {
-      this.service.setAdmin(nId, repId).subscribe({
-        next: () => { this.load(); this.closeWizard(); this.wizardLoading = false; },
-        error: () => { this.load(); this.closeWizard(); this.wizardLoading = false; }
-      });
-    } else { this.load(); this.closeWizard(); this.wizardLoading = false; }
+  private createUsersSequentially(neighborhoodId: number, index: number, ids: number[]) {
+    if (index >= this.wizardUsers.length) {
+      this.finishWizard(neighborhoodId, ids);
+      return;
+    }
+    const isNewRepresentative = this.wizardRepresentativeKey === `new:${index}`;
+    const data = {
+      ...this.wizardUsers[index],
+      neighborhood_id: neighborhoodId,
+      role_id: isNewRepresentative ? 2 : 3,
+    };
+    this.userService.create(data).subscribe({
+      next: (response: any) => {
+        ids.push(Number(response?.user_id));
+        this.createUsersSequentially(neighborhoodId, index + 1, ids);
+      },
+      error: (error: any) => {
+        this.wizardLoading = false;
+        alert(
+          (error.error?.message || `Error al crear usuario ${index + 1}`) +
+          '\nEl barrio fue creado y puedes completar los usuarios desde su detalle.',
+        );
+        this.selectedNeighborhoodId = neighborhoodId;
+        this.load();
+        this.closeWizard();
+      },
+    });
   }
 
-  // ════════════════════════════════════════════════════════════════════════
-  // EDIT MODAL (unchanged)
+  private finishWizard(neighborhoodId: number, newUserIds: number[]) {
+    const candidate = this.selectedRepresentative;
+    let representativeId: number | null = null;
+    let promote = false;
+
+    if (candidate?.source === 'new') {
+      const index = Number(String(candidate.key).split(':')[1]);
+      representativeId = newUserIds[index] ?? null;
+    } else if (candidate?.source === 'existing') {
+      representativeId = Number(candidate.user_id);
+      promote = true;
+    } else if (candidate?.source === 'admin') {
+      representativeId = Number(candidate.user_id);
+    }
+
+    const complete = () => {
+      this.selectedNeighborhoodId = neighborhoodId;
+      this.wizardLoading = false;
+      this.loadAssignableUsers();
+      this.loadAdmins();
+      this.load();
+      this.closeWizard();
+    };
+
+    if (!representativeId) {
+      complete();
+      return;
+    }
+
+    this.service.setAdmin(neighborhoodId, representativeId, promote).subscribe({
+      next: complete,
+      error: (error: any) => {
+        alert(error.error?.message || 'El barrio fue creado, pero no se pudo asignar el representante.');
+        complete();
+      },
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════  // EDIT MODAL (unchanged)
   // ════════════════════════════════════════════════════════════════════════
 
   openModal(mode: 'add' | 'edit', item?: any) {

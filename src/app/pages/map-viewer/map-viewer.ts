@@ -1,19 +1,30 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import {
+  Component,
+  Input,
+  OnChanges,
+  OnDestroy,
+  OnInit,
+  SimpleChanges,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import * as L from 'leaflet';
 import { NeighborhoodService } from '../../core/services/neighborhood';
-import { UserService } from '../../core/services/user';
 import { ReportService } from '../../core/services/report';
+import { UserService } from '../../core/services/user';
 
-// Corrección de los pines de Leaflet
+declare const bootstrap: any;
+
 const iconDefault = L.icon({
   iconRetinaUrl: 'assets/marker-icon-2x.png',
   iconUrl: 'assets/marker-icon.png',
   shadowUrl: 'assets/marker-shadow.png',
-  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34],
-  tooltipAnchor: [16, -28], shadowSize: [41, 41]
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  tooltipAnchor: [16, -28],
+  shadowSize: [41, 41],
 });
 L.Marker.prototype.options.icon = iconDefault;
 
@@ -22,51 +33,51 @@ L.Marker.prototype.options.icon = iconDefault;
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './map-viewer.html',
-  styleUrl: './map-viewer.css'
+  styleUrl: './map-viewer.css',
 })
-export class MapViewerComponent implements OnInit, OnDestroy {
-  map!: L.Map;
+export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
+  @Input() embedded = false;
+  @Input() neighborhoodId: number | null = null;
+  @Input() canManage = false;
+  @Input() refreshKey = 0;
+
+  map?: L.Map;
   neighborhoods: any[] = [];
   allUsers: any[] = [];
   allReports: any[] = [];
-  
-  // Variables para la interfaz
+  loading = true;
+  errorMessage = '';
+
+  selectedNeighborhoodId = 0;
   selectedNeighborhoodInfo: any = null;
   neighborhoodUsers: any[] = [];
+  neighborhoodReports: any[] = [];
   representative: any = null;
-  reportCount: number = 0;
+  activeTab: 'summary' | 'residents' | 'reports' = 'summary';
 
-  // Capas del mapa
+  residentSearch = '';
+  residentsPage = 1;
+  residentsPerPage = 10;
+
+  assignmentSearch = '';
+  selectedAssignmentIds = new Set<number>();
+  savingAssignments = false;
+  feedbackMessage = '';
+
   private allLayers = L.layerGroup();
   private userMarkersLayer = L.layerGroup();
-  private layerMap: { [key: number]: L.Polygon } = {};
-
-  private defaultStyle = { color: '#28a745', weight: 2, fillOpacity: 0.2 };
-  private highlightStyle = { color: '#dc3545', weight: 4, fillOpacity: 0.4 };
+  private layerMap: Record<number, L.Polygon> = {};
+  private markerMap = new Map<number, L.Marker>();
   private selectedPolygon: L.Polygon | null = null;
+  private assignmentModal: any = null;
 
-  private createPopup(title: unknown, subtitle?: string): HTMLElement {
-    const container = document.createElement('div');
-    const heading = document.createElement('strong');
-    heading.textContent = String(title ?? '');
-    container.appendChild(heading);
-
-    if (subtitle) {
-      const lineBreak = document.createElement('br');
-      const detail = document.createElement('span');
-      detail.style.fontSize = '10px';
-      detail.style.color = 'gray';
-      detail.textContent = subtitle;
-      container.append(lineBreak, detail);
-    }
-
-    return container;
-  }
+  private readonly defaultStyle = { color: '#28a745', weight: 2, fillOpacity: 0.16 };
+  private readonly highlightStyle = { color: '#667eea', weight: 4, fillOpacity: 0.28 };
 
   constructor(
     private neighborhoodService: NeighborhoodService,
     private userService: UserService,
-    private reportService: ReportService
+    private reportService: ReportService,
   ) {}
 
   ngOnInit(): void {
@@ -74,17 +85,35 @@ export class MapViewerComponent implements OnInit, OnDestroy {
     this.loadData();
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!this.map) return;
+    if (changes['refreshKey'] && !changes['refreshKey'].firstChange) {
+      this.loadData();
+      return;
+    }
+    if (changes['neighborhoodId']) {
+      this.selectNeighborhood(Number(this.neighborhoodId || 0));
+    }
+  }
+
   ngOnDestroy(): void {
-    if (this.map) this.map.remove();
+    this.assignmentModal?.hide();
+    this.map?.remove();
   }
 
-  initMap() {
+  private initMap(): void {
     this.map = L.map('map-viewer-id').setView([0.3517, -78.1223], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.map);
-    this.map.addLayer(this.userMarkersLayer); // Añadimos la capa de casitas
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(this.map);
+    this.allLayers.addTo(this.map);
+    this.userMarkersLayer.addTo(this.map);
   }
 
-  loadData() {
+  loadData(): void {
+    this.loading = true;
+    this.errorMessage = '';
     forkJoin({
       neighborhoods: this.neighborhoodService.getAll(),
       users: this.userService.getAll(),
@@ -95,96 +124,239 @@ export class MapViewerComponent implements OnInit, OnDestroy {
         this.allUsers = users;
         this.allReports = reports;
         this.drawAllNeighborhoods();
+        const targetId = Number(this.neighborhoodId || this.selectedNeighborhoodId || 0);
+        this.selectNeighborhood(targetId);
+        this.loading = false;
       },
-      error: (err) => console.error('Error al cargar los datos del mapa:', err),
+      error: () => {
+        this.errorMessage = 'No se pudo cargar el panel del barrio.';
+        this.loading = false;
+      },
     });
   }
-  drawAllNeighborhoods() {
-    this.allLayers.clearLayers();
-    this.layerMap = {};
 
-    this.neighborhoods.forEach(n => {
-      if (n.boundary) {
-        try {
-          // ✅ Corrección: Parsear correctamente el polígono desde la BD
-          const coords = typeof n.boundary === 'string' ? JSON.parse(n.boundary) : n.boundary;
-          
-          if (Array.isArray(coords)) {
-            const polygon = L.polygon(
-              coords.map((p: any[]) => L.latLng(p[0], p[1])),
-              this.defaultStyle
-            );
-
-            polygon.bindPopup(this.createPopup(n.name));
-            this.allLayers.addLayer(polygon);
-            this.layerMap[n.neighborhood_id] = polygon;
-          }
-        } catch (e) {
-          console.error(`Error al cargar polígono: ${n.name}`, e);
-        }
-      }
-    });
-    this.map.addLayer(this.allLayers);
+  onSelectNeighborhood(event: Event): void {
+    this.selectNeighborhood(Number((event.target as HTMLSelectElement).value));
   }
 
-  onSelectNeighborhood(event: any) {
-    const id = +event.target.value;
-
-    // Resetear el mapa
+  selectNeighborhood(id: number): void {
+    if (!this.map) return;
+    this.selectedNeighborhoodId = id;
     this.userMarkersLayer.clearLayers();
+    this.markerMap.clear();
+    this.feedbackMessage = '';
+
     if (this.selectedPolygon) {
       this.selectedPolygon.setStyle(this.defaultStyle);
       this.selectedPolygon = null;
     }
 
-    // Si vuelve a "Ver Todos"
-    if (id === 0) {
+    if (!id) {
       this.selectedNeighborhoodInfo = null;
       this.neighborhoodUsers = [];
+      this.neighborhoodReports = [];
       this.representative = null;
-      this.reportCount = 0;
       this.map.setView([0.3517, -78.1223], 13);
-      setTimeout(() => this.map.invalidateSize(), 300);
+      setTimeout(() => this.map?.invalidateSize(), 100);
       return;
     }
 
-    // ✅ 1. Buscar info del barrio
-    this.selectedNeighborhoodInfo = this.neighborhoods.find(n => n.neighborhood_id === id);
+    this.selectedNeighborhoodInfo = this.neighborhoods.find(
+      (item) => Number(item.neighborhood_id) === id,
+    );
+    if (!this.selectedNeighborhoodInfo) {
+      this.loadData();
+      return;
+    }
 
-    // ✅ 2. Filtrar habitantes
-    this.neighborhoodUsers = this.allUsers.filter(u => u.neighborhood_id === id);
+    this.neighborhoodUsers = this.allUsers.filter(
+      (user) => Number(user.neighborhood_id) === id,
+    );
+    this.neighborhoodReports = this.allReports.filter(
+      (report) => Number(report.neighborhood_id) === id,
+    );
+    this.representative = this.neighborhoodUsers.find(
+      (user) => Number(user.role_id) === 2,
+    );
+    this.residentSearch = '';
+    this.residentsPage = 1;
 
-    // ✅ 3. Encontrar al representante
-    this.representative = this.neighborhoodUsers.find(u => u.role_id === 2);
+    for (const user of this.neighborhoodUsers) {
+      const lat = Number(user.home_lat);
+      const lng = Number(user.home_lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      const marker = L.marker([lat, lng]).bindPopup(
+        this.createPopup(
+          `${user.name || ''} ${user.last_name || ''}`.trim(),
+          Number(user.role_id) === 2 ? 'Representante' : 'Habitante',
+        ),
+      );
+      marker.addTo(this.userMarkersLayer);
+      this.markerMap.set(Number(user.user_id), marker);
+    }
 
-    // ✅ 4. Contar la cantidad de reportes (alarmas) de este barrio
-    this.reportCount = this.allReports.filter(r => Number(r.neighborhood_id) === id).length;
-
-    // ✅ 5. Dibujar pines de usuarios en el mapa
-    this.neighborhoodUsers.forEach(u => {
-      if (u.home_lat && u.home_lng && !isNaN(u.home_lat)) {
-        const marker = L.marker([u.home_lat, u.home_lng]);
-        marker.bindPopup(
-          this.createPopup(
-            `${u.name ?? ''} ${u.last_name ?? ''}`.trim(),
-            u.role_id === 2 ? 'Representante' : 'Habitante',
-          ),
-        );
-        this.userMarkersLayer.addLayer(marker);
-      }
-    });
-
-    // ✅ 6. Resaltar el polígono y hacer ZOOM
-    if (this.layerMap[id]) {
-      const polygon = this.layerMap[id];
+    const polygon = this.layerMap[id];
+    if (polygon) {
       polygon.setStyle(this.highlightStyle);
       polygon.bringToFront();
       this.selectedPolygon = polygon;
-      
-      this.map.fitBounds(polygon.getBounds());
+      this.map.fitBounds(polygon.getBounds(), { padding: [24, 24] });
+    } else if (this.markerMap.size > 0) {
+      const group = L.featureGroup([...this.markerMap.values()]);
+      this.map.fitBounds(group.getBounds(), { padding: [24, 24], maxZoom: 17 });
     }
+    setTimeout(() => this.map?.invalidateSize(), 150);
+  }
 
-    // Forzar actualización visual del mapa por el cambio de tamaño
-    setTimeout(() => this.map.invalidateSize(), 300);
+  setTab(tab: 'summary' | 'residents' | 'reports'): void {
+    this.activeTab = tab;
+    if (tab === 'summary') setTimeout(() => this.map?.invalidateSize(), 100);
+  }
+
+  get filteredResidents(): any[] {
+    const query = this.residentSearch.trim().toLowerCase();
+    if (!query) return this.neighborhoodUsers;
+    return this.neighborhoodUsers.filter((user) =>
+      [user.name, user.last_name, user.email, user.phone]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query)),
+    );
+  }
+
+  get paginatedResidents(): any[] {
+    const start = (this.residentsPage - 1) * this.residentsPerPage;
+    return this.filteredResidents.slice(start, start + this.residentsPerPage);
+  }
+
+  get residentsTotalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredResidents.length / this.residentsPerPage));
+  }
+
+  get residentPageNumbers(): number[] {
+    return Array.from({ length: this.residentsTotalPages }, (_, index) => index + 1);
+  }
+
+  changeResidentsPage(page: number): void {
+    if (page < 1 || page > this.residentsTotalPages) return;
+    this.residentsPage = page;
+  }
+
+  onResidentSearch(): void {
+    this.residentsPage = 1;
+  }
+
+  get recentReports(): any[] {
+    return this.neighborhoodReports.slice(0, 5);
+  }
+
+  focusResident(user: any): void {
+    this.setTab('summary');
+    setTimeout(() => {
+      const marker = this.markerMap.get(Number(user.user_id));
+      if (!marker || !this.map) return;
+      this.map.setView(marker.getLatLng(), 18);
+      marker.openPopup();
+    }, 100);
+  }
+
+  get assignableUsers(): any[] {
+    const query = this.assignmentSearch.trim().toLowerCase();
+    return this.allUsers.filter((user) => {
+      const isUnassignedResident = Number(user.role_id) === 3 && !user.neighborhood_id;
+      const matches = !query || [user.name, user.last_name, user.email]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query));
+      return isUnassignedResident && matches;
+    });
+  }
+
+  openAssignmentModal(): void {
+    this.assignmentSearch = '';
+    this.selectedAssignmentIds.clear();
+    const element = document.getElementById('assignResidentsModal');
+    if (!element) return;
+    this.assignmentModal = bootstrap.Modal.getOrCreateInstance(element);
+    this.assignmentModal.show();
+  }
+
+  toggleAssignment(userId: number): void {
+    if (this.selectedAssignmentIds.has(userId)) this.selectedAssignmentIds.delete(userId);
+    else this.selectedAssignmentIds.add(userId);
+  }
+
+  saveAssignments(): void {
+    if (!this.selectedNeighborhoodId || this.selectedAssignmentIds.size === 0) return;
+    this.savingAssignments = true;
+    this.neighborhoodService
+      .updateUsers(this.selectedNeighborhoodId, [...this.selectedAssignmentIds], 'add')
+      .subscribe({
+        next: () => {
+          this.assignmentModal?.hide();
+          this.feedbackMessage = 'Habitantes asignados correctamente.';
+          this.savingAssignments = false;
+          this.loadData();
+        },
+        error: (error) => {
+          this.feedbackMessage = error.error?.message || 'No se pudieron asignar los habitantes.';
+          this.savingAssignments = false;
+        },
+      });
+  }
+
+  removeResident(user: any): void {
+    if (Number(user.role_id) === 2) {
+      this.feedbackMessage = 'Cambia primero el representante antes de retirarlo.';
+      return;
+    }
+    const fullName = `${user.name || ''} ${user.last_name || ''}`.trim();
+    if (!confirm(`¿Retirar a ${fullName} de este barrio?`)) return;
+    this.neighborhoodService
+      .updateUsers(this.selectedNeighborhoodId, [Number(user.user_id)], 'remove')
+      .subscribe({
+        next: () => {
+          this.feedbackMessage = 'Habitante retirado correctamente.';
+          this.loadData();
+        },
+        error: (error) => {
+          this.feedbackMessage = error.error?.message || 'No se pudo retirar al habitante.';
+        },
+      });
+  }
+
+  private drawAllNeighborhoods(): void {
+    this.allLayers.clearLayers();
+    this.layerMap = {};
+    for (const neighborhood of this.neighborhoods) {
+      if (!neighborhood.boundary) continue;
+      try {
+        const coordinates = typeof neighborhood.boundary === 'string'
+          ? JSON.parse(neighborhood.boundary)
+          : neighborhood.boundary;
+        if (!Array.isArray(coordinates)) continue;
+        const polygon = L.polygon(
+          coordinates.map((point: any[]) => L.latLng(point[0], point[1])),
+          this.defaultStyle,
+        );
+        polygon.bindPopup(this.createPopup(neighborhood.name));
+        polygon.addTo(this.allLayers);
+        this.layerMap[Number(neighborhood.neighborhood_id)] = polygon;
+      } catch {
+        // Un perímetro inválido no debe impedir cargar los demás barrios.
+      }
+    }
+  }
+
+  private createPopup(title: unknown, subtitle?: string): HTMLElement {
+    const container = document.createElement('div');
+    const heading = document.createElement('strong');
+    heading.textContent = String(title ?? '');
+    container.appendChild(heading);
+    if (subtitle) {
+      const detail = document.createElement('div');
+      detail.className = 'text-muted';
+      detail.textContent = subtitle;
+      container.appendChild(detail);
+    }
+    return container;
   }
 }

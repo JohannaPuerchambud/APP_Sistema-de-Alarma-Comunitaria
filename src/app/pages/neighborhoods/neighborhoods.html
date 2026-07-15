@@ -1,79 +1,66 @@
-<div class="container mt-4">
-  <div class="page-header">
-    <h4 class="m-0">Gestión de Barrios</h4>
-    <button class="btn btn-primary" (click)="openWizard()">
-      <i class="bi bi-plus-lg"></i> Nuevo Barrio
+<div class="container-fluid neighborhoods-page">
+  <header class="neighborhoods-header">
+    <div>
+      <span class="section-kicker">Administración territorial</span>
+      <h1>Barrios y habitantes</h1>
+      <p>Selecciona un barrio para consultar su mapa, habitantes, representante y reportes.</p>
+    </div>
+    <button *ngIf="isAdminGeneral" class="btn btn-primary" (click)="openWizard()">
+      <i class="bi bi-plus-lg"></i> Nuevo barrio
     </button>
+  </header>
+
+  <div class="master-detail-layout">
+    <aside class="master-panel">
+      <div class="master-panel-header">
+        <div><span class="section-kicker">Maestro</span><h2>Barrios</h2></div>
+        <span class="total-pill">{{ filteredItems.length }}</span>
+      </div>
+      <div class="master-search">
+        <i class="bi bi-search"></i>
+        <input type="search" class="form-control" placeholder="Buscar barrio o representante" [(ngModel)]="searchText" (input)="applyFilters()">
+      </div>
+
+      <div *ngIf="loading" class="master-loading"><div class="spinner-border spinner-border-sm text-primary"></div> Cargando barrios...</div>
+      <div class="master-list" *ngIf="!loading">
+        <button type="button" class="master-item" *ngFor="let neighborhood of paginatedItems"
+          [class.active]="selectedNeighborhoodId === neighborhood.neighborhood_id"
+          (click)="selectNeighborhood(neighborhood.neighborhood_id)">
+          <span class="master-item-icon"><i class="bi bi-buildings-fill"></i></span>
+          <span class="master-item-content">
+            <strong>{{ neighborhood.name }}</strong>
+            <small><i class="bi bi-person-badge"></i> {{ neighborhood.admin_name ? neighborhood.admin_name + ' ' + (neighborhood.admin_last_name || '') : 'Sin representante' }}</small>
+            <small><i class="bi bi-shield-check"></i> {{ neighborhood.upc_name || 'Sin UPC' }}</small>
+          </span>
+          <span class="master-actions" *ngIf="isAdminGeneral">
+            <span class="master-action" (click)="$event.stopPropagation(); openModal('edit', neighborhood)" title="Editar"><i class="bi bi-pencil"></i></span>
+            <span class="master-action danger" (click)="$event.stopPropagation(); remove(neighborhood.neighborhood_id)" title="Eliminar"><i class="bi bi-trash"></i></span>
+          </span>
+        </button>
+        <div class="master-empty" *ngIf="filteredItems.length === 0"><i class="bi bi-inbox"></i><span>No se encontraron barrios.</span></div>
+      </div>
+
+      <nav class="master-pagination" *ngIf="totalPages > 1 && !loading">
+        <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
+        <span>Página {{ currentPage }} de {{ totalPages }}</span>
+        <button (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages">›</button>
+      </nav>
+    </aside>
+
+    <main class="detail-panel">
+      <app-map-viewer
+        *ngIf="selectedNeighborhoodId; else selectNeighborhoodPrompt"
+        [embedded]="true"
+        [neighborhoodId]="selectedNeighborhoodId"
+        [canManage]="isAdminGeneral"
+        [refreshKey]="detailRefresh">
+      </app-map-viewer>
+      <ng-template #selectNeighborhoodPrompt>
+        <div class="detail-placeholder"><i class="bi bi-map"></i><h2>Selecciona un barrio</h2><p>Aquí aparecerá el panel detalle.</p></div>
+      </ng-template>
+    </main>
   </div>
-
-  <div class="search-container">
-    <input type="text" class="form-control"
-      placeholder="🔍 Buscar por nombre, descripción, UPC o representante..."
-      [(ngModel)]="searchText" (input)="applyFilters()" />
-  </div>
-
-  <div *ngIf="loading" class="alert alert-info">Cargando...</div>
-
-  <div class="table-container" *ngIf="!loading">
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th>ID</th><th>Nombre</th><th>UPC</th><th>Representante</th><th>Núm. Alarma</th><th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let n of paginatedItems">
-          <td>{{ n.neighborhood_id }}</td>
-          <td><strong>{{ n.name }}</strong></td>
-          <td>
-            <span *ngIf="n.upc_name" class="badge" style="background:#667eea">
-              <i class="bi bi-shield-check me-1"></i>{{ n.upc_name }}
-            </span>
-            <span *ngIf="!n.upc_name" class="text-muted">—</span>
-          </td>
-          <td>
-            <ng-container *ngIf="n.admin_name; else noAdmin">
-              <div class="d-flex align-items-center gap-1">
-                <i class="bi bi-person-badge text-success"></i>
-                <span>{{ n.admin_name }} {{ n.admin_last_name || '' }}</span>
-              </div>
-              <small class="text-muted">{{ n.admin_email }}</small>
-            </ng-container>
-            <ng-template #noAdmin><span class="text-muted">— Sin representante</span></ng-template>
-          </td>
-          <td>{{ n.alarm_number || '—' }}</td>
-          <td>
-            <button class="btn btn-sm btn-outline-primary me-2" (click)="openModal('edit', n)" title="Editar">
-              <i class="bi bi-pencil"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-danger" (click)="remove(n.neighborhood_id)" title="Eliminar">
-              <i class="bi bi-trash"></i>
-            </button>
-          </td>
-        </tr>
-        <tr *ngIf="filteredItems.length === 0 && !loading">
-          <td colspan="6" class="text-center py-4 text-muted">No se encontraron barrios.</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <nav *ngIf="totalPages > 1 && !loading" class="d-flex justify-content-center mt-3">
-    <ul class="pagination">
-      <li class="page-item" [class.disabled]="currentPage === 1">
-        <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPage - 1)">&laquo;</a>
-      </li>
-      <li class="page-item" *ngFor="let page of pageNumbers" [class.active]="page === currentPage">
-        <a class="page-link" href="javascript:void(0)" (click)="changePage(page)">{{ page }}</a>
-      </li>
-      <li class="page-item" [class.disabled]="currentPage === totalPages">
-        <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPage + 1)">&raquo;</a>
-      </li>
-    </ul>
-  </nav>
 </div>
-
-
 <!-- ═══════════════════ WIZARD MODAL (4 PASOS) ═══════════════════ -->
 <div class="modal fade" id="wizardModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-lg">
@@ -192,11 +179,44 @@
           <ng-container *ngIf="userSubStep === 'list'">
             <h6 class="step-title">
               <i class="bi bi-people-fill me-2" style="color:#667eea"></i>
-              Usuarios del Barrio
+              Habitantes del Barrio
               <span class="badge-optional">Opcional</span>
-              <span class="ms-2 badge" style="background:#667eea; font-size:12px">{{ wizardUsers.length }} agregado(s)</span>
+              <span class="ms-2 badge" style="background:#667eea; font-size:12px">{{ selectedExistingUserIds.size + wizardUsers.length }} seleccionado(s)</span>
             </h6>
 
+            <section class="existing-users-picker">
+              <div class="d-flex justify-content-between align-items-center gap-2 mb-2 flex-wrap">
+                <div>
+                  <strong>Asignar usuarios existentes</strong>
+                  <small class="d-block text-muted">Usuarios con rol Habitante que todavía no tienen barrio.</small>
+                </div>
+                <span class="badge bg-primary">{{ selectedExistingUserIds.size }} seleccionado(s)</span>
+              </div>
+              <div class="input-group mb-2">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input class="form-control" placeholder="Buscar por nombre, correo o teléfono"
+                  [(ngModel)]="existingUserSearch" name="existingUserSearch" (input)="onExistingUserSearch()">
+              </div>
+              <div class="existing-user-list" *ngIf="paginatedAssignableUsers.length; else noExistingUsers">
+                <label class="existing-user-item" *ngFor="let user of paginatedAssignableUsers"
+                  [class.selected]="selectedExistingUserIds.has(user.user_id)">
+                  <input type="checkbox" [checked]="selectedExistingUserIds.has(user.user_id)"
+                    (change)="toggleExistingUser(user.user_id)">
+                  <span class="user-row-avatar"><i class="bi bi-person-fill"></i></span>
+                  <span class="user-row-info"><strong>{{ user.name }} {{ user.last_name || '' }}</strong><span>{{ user.email }}</span></span>
+                </label>
+              </div>
+              <ng-template #noExistingUsers>
+                <div class="wizard-hint"><i class="bi bi-person-check"></i> No existen usuarios disponibles con ese criterio.</div>
+              </ng-template>
+              <div class="existing-pagination" *ngIf="existingUsersTotalPages > 1">
+                <button class="btn btn-sm btn-outline-secondary" (click)="changeExistingUsersPage(existingUsersPage - 1)" [disabled]="existingUsersPage === 1">Anterior</button>
+                <span>Página {{ existingUsersPage }} de {{ existingUsersTotalPages }}</span>
+                <button class="btn btn-sm btn-outline-secondary" (click)="changeExistingUsersPage(existingUsersPage + 1)" [disabled]="existingUsersPage === existingUsersTotalPages">Siguiente</button>
+              </div>
+            </section>
+
+            <div class="wizard-divider"><span>o crea habitantes nuevos</span></div>
             <!-- Lista scrolleable (max-height fijo) -->
             <div class="user-scroll-list" *ngIf="wizardUsers.length > 0">
               <div class="user-row" *ngFor="let u of wizardUsers; let i = index">
@@ -309,92 +329,48 @@
 
         <!-- ════ PASO 4: Representante + Resumen ════ -->
         <div class="wizard-step-content" *ngIf="wizardStep === 4">
-          <h6 class="step-title">
-            <i class="bi bi-person-badge-fill me-2 text-warning"></i>Representante del Barrio
-            <span class="badge-optional">Opcional</span>
-          </h6>
+          <h6 class="step-title"><i class="bi bi-person-badge-fill me-2 text-warning"></i>Representante del barrio <span class="badge-optional">Opcional</span></h6>
+          <p class="text-muted" style="font-size:13px">
+            Puedes elegir un Admin Barrio existente, un habitante seleccionado o un usuario nuevo. Si eliges un habitante, se solicitará confirmación antes de cambiarlo al rol Representante.
+          </p>
 
-          <div *ngIf="wizardUsers.length === 0" class="wizard-hint mb-4">
-            <i class="bi bi-info-circle"></i> No se crearon usuarios en este barrio. Puedes asignar un representante después desde el CRUD de barrios.
+          <div class="input-group mb-2">
+            <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+            <input class="form-control" placeholder="Buscar candidato por nombre o correo" [(ngModel)]="repSearchText" name="repSearch">
           </div>
 
-          <div *ngIf="wizardUsers.length > 0" class="mb-4">
-            <p class="text-muted" style="font-size:13px">
-              El usuario seleccionado obtendrá el rol <strong>Admin Barrio</strong> automáticamente.
-            </p>
-
-            <!-- Buscador -->
-            <div class="input-group mb-2">
-              <span class="input-group-text" style="background:white; border-right:none">
-                <i class="bi bi-search text-muted"></i>
-              </span>
-              <input class="form-control" style="border-left:none" placeholder="Buscar usuario por nombre o email..."
-                [(ngModel)]="repSearchText" name="repSearch">
-            </div>
-
-            <!-- Lista scrolleable filtrada -->
-            <div class="rep-scroll-list">
-              <div *ngFor="let item of filteredWizardUsers"
-                class="rep-item" [class.selected]="wizardRepresentanteIdx === item.index"
-                (click)="wizardRepresentanteIdx = (wizardRepresentanteIdx === item.index ? null : item.index)">
-                <div class="rep-avatar"><i class="bi bi-person-fill"></i></div>
-                <div class="rep-info">
-                  <strong>{{ item.user.name }} {{ item.user.last_name }}</strong>
-                  <span>{{ item.user.email }}</span>
-                </div>
-                <div class="rep-check">
-                  <i class="bi" [ngClass]="wizardRepresentanteIdx === item.index ? 'bi-check-circle-fill' : 'bi-circle'"></i>
-                </div>
+          <div class="rep-scroll-list" *ngIf="filteredRepresentativeCandidates.length; else noRepresentativeCandidates">
+            <button type="button" *ngFor="let candidate of filteredRepresentativeCandidates"
+              class="rep-item w-100" [class.selected]="wizardRepresentativeKey === candidate.key"
+              (click)="selectRepresentative(candidate)">
+              <div class="rep-avatar"><i class="bi bi-person-fill"></i></div>
+              <div class="rep-info">
+                <strong>{{ candidate.name }} {{ candidate.last_name || '' }}</strong>
+                <span>{{ candidate.email }}</span>
+                <small *ngIf="candidate.source === 'existing'">Habitante seleccionado · cambiará a Representante</small>
+                <small *ngIf="candidate.source === 'new'">Usuario nuevo · se creará como Representante</small>
+                <small *ngIf="candidate.source === 'admin'">Admin Barrio{{ candidate.neighborhood_name ? ' · ' + candidate.neighborhood_name : ' disponible' }}</small>
               </div>
-              <div *ngIf="filteredWizardUsers.length === 0" class="text-center text-muted py-3" style="font-size:13px">
-                No se encontraron usuarios con ese criterio.
-              </div>
-            </div>
+              <div class="rep-check"><i class="bi" [ngClass]="wizardRepresentativeKey === candidate.key ? 'bi-check-circle-fill' : 'bi-circle'"></i></div>
+            </button>
+          </div>
+          <ng-template #noRepresentativeCandidates><div class="wizard-hint"><i class="bi bi-info-circle"></i> No hay candidatos. Puedes crear el barrio y asignar el representante después.</div></ng-template>
 
-            <small class="text-muted d-block mt-2">
-              <i class="bi bi-info-circle me-1"></i>Haz clic para seleccionar · Haz clic de nuevo para deseleccionar.
-            </small>
+          <div class="representative-warning" *ngIf="selectedRepresentative?.source === 'existing'">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span><strong>Cambio de rol confirmado.</strong> Mantendrá acceso móvil, chat, reportes y alertas, pero también tendrá acceso administrativo web a su barrio. Deberá iniciar sesión nuevamente para reflejar el cambio.</span>
           </div>
 
-          <!-- Resumen final -->
-          <div class="summary-card">
+          <div class="summary-card mt-3">
             <h6 class="summary-title"><i class="bi bi-clipboard-check me-2"></i>Resumen</h6>
-            <div class="summary-row">
-              <span class="summary-label">Barrio</span>
-              <span class="summary-value"><strong>{{ wizardData.name }}</strong></span>
-            </div>
-            <div class="summary-row">
-              <span class="summary-label">Descripción</span>
-              <span class="summary-value">{{ wizardData.description || '—' }}</span>
-            </div>
-            <div class="summary-row">
-              <span class="summary-label">UPC</span>
-              <span class="summary-value">{{ getUpcName(wizardData.upc_id) }}</span>
-            </div>
-            <div class="summary-row">
-              <span class="summary-label">Mapa</span>
-              <span class="summary-value">
-                <span *ngIf="drawingPoints.length >= 3" class="text-success"><i class="bi bi-check-circle-fill me-1"></i>{{ drawingPoints.length }} puntos</span>
-                <span *ngIf="drawingPoints.length < 3" class="text-muted">Sin delimitar</span>
-              </span>
-            </div>
-            <div class="summary-row">
-              <span class="summary-label">Usuarios</span>
-              <span class="summary-value">{{ wizardUsers.length }} usuario(s) a crear</span>
-            </div>
-            <div class="summary-row">
-              <span class="summary-label">Representante</span>
-              <span class="summary-value">
-                <span *ngIf="wizardRepresentanteIdx !== null" class="text-success">
-                  <i class="bi bi-person-badge-fill me-1"></i>
-                  {{ wizardUsers[wizardRepresentanteIdx]?.name }} {{ wizardUsers[wizardRepresentanteIdx]?.last_name }}
-                </span>
-                <span *ngIf="wizardRepresentanteIdx === null" class="text-muted">— Sin representante</span>
-              </span>
-            </div>
+            <div class="summary-row"><span class="summary-label">Barrio</span><span class="summary-value"><strong>{{ wizardData.name }}</strong></span></div>
+            <div class="summary-row"><span class="summary-label">UPC</span><span class="summary-value">{{ getUpcName(wizardData.upc_id) }}</span></div>
+            <div class="summary-row"><span class="summary-label">Perímetro</span><span class="summary-value">{{ drawingPoints.length >= 3 ? drawingPoints.length + ' puntos' : 'Sin delimitar' }}</span></div>
+            <div class="summary-row"><span class="summary-label">Habitantes existentes</span><span class="summary-value">{{ selectedExistingUserIds.size }}</span></div>
+            <div class="summary-row"><span class="summary-label">Habitantes nuevos</span><span class="summary-value">{{ wizardUsers.length }}</span></div>
+            <div class="summary-row"><span class="summary-label">Representante</span><span class="summary-value">{{ selectedRepresentative ? selectedRepresentative.name + ' ' + (selectedRepresentative.last_name || '') : 'Sin representante' }}</span></div>
           </div>
         </div>
-
       </div><!-- /wizard-body -->
 
       <!-- Footer -->

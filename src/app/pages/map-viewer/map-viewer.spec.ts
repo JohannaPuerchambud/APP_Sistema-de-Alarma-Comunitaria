@@ -13,4 +13,16 @@ describe('MapViewerComponent security', () => {
     expect(popup.textContent).toContain('<img src=x');
     expect(popup.textContent).toContain('<script>');
   });
-});
+
+  it('filtra y pagina habitantes del barrio seleccionado', () => {
+    const component = new MapViewerComponent({} as any, {} as any, {} as any);
+    component.neighborhoodUsers = [
+      { user_id: 1, name: 'Ana', email: 'ana@test.local' },
+      { user_id: 2, name: 'Luis', email: 'luis@test.local' },
+    ];
+    component.residentSearch = 'ana';
+    component.residentsPerPage = 10;
+
+    expect(component.filteredResidents.length).toBe(1);
+    expect(component.paginatedResidents[0].user_id).toBe(1);
+  });});
