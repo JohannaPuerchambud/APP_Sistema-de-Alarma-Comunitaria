@@ -22,6 +22,7 @@ export class Users implements OnInit {
   neighborhoods: any[] = [];
   selected: any = {};
   modalMode: 'add' | 'edit' = 'add';
+  userStep: 1 | 2 | 3 = 1;
 
   public masterUserList: any[] = [];
   public filteredUsers: any[] = [];
@@ -29,7 +30,7 @@ export class Users implements OnInit {
 
   public searchText: string = '';
   public currentPage: number = 1;
-  public itemsPerPage: number = 3;
+  public itemsPerPage: number = 10;
 
   private homeMap: L.Map | null = null;
   private homeMarker: L.Marker | null = null;
@@ -39,6 +40,7 @@ export class Users implements OnInit {
   geoResults: any[] = [];
   showUserPassword = false;
   passwordPattern = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+  feedbackMessage = '';
 
   constructor(
     private userService: UserService,
@@ -49,6 +51,42 @@ export class Users implements OnInit {
 
   get isAdminGeneral(): boolean {
     return this.auth.isAdminGeneral();
+  }
+
+  get isAdminBarrio(): boolean {
+    return this.auth.isAdminBarrio();
+  }
+
+  get assignedNeighborhoodId(): number {
+    return Number(this.auth.neighborhood() || 0);
+  }
+
+  get assignedNeighborhoodName(): string {
+    return (
+      this.neighborhoods.find(
+        (item) => Number(item.neighborhood_id) === this.assignedNeighborhoodId,
+      )?.name || 'Sin barrio asignado'
+    );
+  }
+
+  get canCreateResident(): boolean {
+    return this.isAdminGeneral || this.assignedNeighborhoodId > 0;
+  }
+
+  get selectedNeighborhoodName(): string {
+    if (this.isAdminBarrio) return this.assignedNeighborhoodName;
+    return (
+      this.neighborhoods.find(
+        (item) => Number(item.neighborhood_id) === Number(this.selected.neighborhood_id),
+      )?.name || 'Sin barrio'
+    );
+  }
+
+  get selectedRoleLabel(): string {
+    const role = Number(this.selected.role_id);
+    if (role === 1) return 'Admin General';
+    if (role === 2) return 'Representante';
+    return 'Habitante';
   }
 
   canManageUser(user: any): boolean {
@@ -62,14 +100,17 @@ export class Users implements OnInit {
 
   load() {
     this.loading = true;
+    this.feedbackMessage = '';
     this.userService.getAll().subscribe({
       next: (res) => {
-        this.masterUserList = res;
+        this.masterUserList = this.isAdminBarrio
+          ? res.filter((user) => Number(user.role_id) === 3)
+          : res;
         this.applyFilters();
         this.loading = false;
       },
       error: (err) => {
-        console.error(err);
+        this.feedbackMessage = err.error?.message || 'No se pudieron cargar los usuarios.';
         this.loading = false;
       },
     });
@@ -78,7 +119,9 @@ export class Users implements OnInit {
   loadNeighborhoods() {
     this.neighborhoodService.getAll().subscribe({
       next: (res) => (this.neighborhoods = res),
-      error: (err) => console.error(err),
+      error: (err) => {
+        this.feedbackMessage = err.error?.message || 'No se pudo cargar el barrio asignado.';
+      },
     });
   }
 
@@ -122,12 +165,24 @@ export class Users implements OnInit {
   }
 
   openModal(mode: 'add' | 'edit', item?: any) {
+    if (this.isAdminBarrio && !this.assignedNeighborhoodId) {
+      this.feedbackMessage =
+        'Tu cuenta de representante no tiene un barrio asignado. Contacta al administrador general.';
+      return;
+    }
+
+    this.feedbackMessage = '';
     this.modalMode = mode;
+    this.userStep = 1;
+    this.destroyHomeMap();
 
     if (mode === 'edit' && item) {
       this.selected = { ...item };
+      if (this.isAdminBarrio) {
+        this.selected.role_id = 3;
+        this.selected.neighborhood_id = this.assignedNeighborhoodId;
+      }
       delete this.selected.password;
-
       this.addressQuery = this.selected.address || '';
     } else {
       this.selected = {
@@ -141,10 +196,12 @@ export class Users implements OnInit {
         home_lat: null,
         home_lng: null,
         role_id: 3,
-        neighborhood_id:
-          this.neighborhoods.length === 1 ? this.neighborhoods[0].neighborhood_id : null,
+        neighborhood_id: this.isAdminBarrio
+          ? this.assignedNeighborhoodId
+          : this.neighborhoods.length === 1
+            ? this.neighborhoods[0].neighborhood_id
+            : null,
       };
-
       this.addressQuery = '';
     }
 
@@ -153,19 +210,43 @@ export class Users implements OnInit {
     this.showUserPassword = false;
 
     const modalEl = document.getElementById('modalUser')!;
-    const bsModal = new bootstrap.Modal(modalEl);
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  }
 
-    const onShown = () => {
-      this.mountHomeMapSafely();
-      modalEl.removeEventListener('shown.bs.modal', onShown as any);
-    };
-    modalEl.addEventListener('shown.bs.modal', onShown as any);
+  userNext(): void {
+    if (this.userStep === 1) {
+      if (!this.selected.name?.trim() || !this.selected.email?.trim()) {
+        alert('El nombre y el correo son obligatorios.');
+        return;
+      }
+      if (this.modalMode === 'add' && !this.passwordPattern.test(this.selected.password || '')) {
+        alert('La contraseña debe tener mínimo 8 caracteres e incluir letras y números.');
+        return;
+      }
+      this.userStep = 2;
+      setTimeout(() => this.mountHomeMapSafely(), 150);
+      return;
+    }
 
-    bsModal.show();
+    this.destroyHomeMap();
+    this.userStep = 3;
+  }
 
-    requestAnimationFrame(() => {
-      setTimeout(() => this.mountHomeMapSafely(), 400);
-    });
+  userBack(): void {
+    if (this.userStep === 3) {
+      this.userStep = 2;
+      setTimeout(() => this.mountHomeMapSafely(), 150);
+      return;
+    }
+
+    this.destroyHomeMap();
+    this.userStep = 1;
+  }
+
+  private destroyHomeMap(): void {
+    this.homeMap?.remove();
+    this.homeMap = null;
+    this.homeMarker = null;
   }
 
   private mountHomeMapSafely() {
@@ -301,6 +382,11 @@ export class Users implements OnInit {
   save() {
     const data = { ...this.selected };
 
+    if (this.isAdminBarrio) {
+      data.role_id = 3;
+      data.neighborhood_id = this.assignedNeighborhoodId;
+    }
+
     if (this.modalMode === 'edit' && !data.password) {
       delete data.password;
     }
@@ -315,31 +401,30 @@ export class Users implements OnInit {
         this.load();
         this.closeModal();
       },
-      error: (err) => console.error(err),
+      error: (err) => {
+        this.feedbackMessage = err.error?.message || 'No se pudo guardar el usuario.';
+      },
     });
   }
 
   remove(id: number) {
-    if (confirm('¿Eliminar este usuario?')) {
+    const label = this.isAdminBarrio ? 'habitante' : 'usuario';
+    if (confirm('¿Eliminar este ' + label + '?')) {
       this.userService.delete(id).subscribe({
         next: () => this.load(),
-        error: (err) => console.error(err),
+        error: (err) => {
+          this.feedbackMessage = err.error?.message || 'No se pudo eliminar el ' + label + '.';
+        },
       });
     }
   }
 
   closeModal() {
     const modalEl = document.getElementById('modalUser')!;
-    const bsModal = bootstrap.Modal.getInstance(modalEl);
-    bsModal?.hide();
-
-    if (this.homeMap) {
-      this.homeMap.remove();
-      this.homeMap = null;
-      this.homeMarker = null;
-    }
-
+    bootstrap.Modal.getInstance(modalEl)?.hide();
+    this.destroyHomeMap();
     this.geoResults = [];
     this.geoLoading = false;
+    this.userStep = 1;
   }
 }

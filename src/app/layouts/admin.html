@@ -1,6 +1,12 @@
 <div class="layout">
+  <header class="mobile-topbar">
+    <button type="button" class="mobile-menu-button" (click)="toggleMobileMenu()" [attr.aria-expanded]="mobileMenuOpen" aria-controls="main-sidebar" [attr.aria-label]="mobileMenuOpen ? 'Cerrar menú principal' : 'Abrir menú principal'">
+      <i class="bi" [ngClass]="mobileMenuOpen ? 'bi-x-lg' : 'bi-list'"></i>
+    </button>
+    <strong>Alarma Comunitaria</strong>
+  </header>
   <!-- Sidebar -->
-  <nav class="sidebar">
+  <nav id="main-sidebar" class="sidebar" [class.mobile-open]="mobileMenuOpen">
     <div class="sidebar-header text-center">
       <h5>Alarma Comunitaria</h5>
       <hr />
@@ -18,8 +24,28 @@
     <ul class="menu list-unstyled">
       <li *ngIf="auth.isAdminGeneral() || auth.isAdminBarrio()">
         <a
+          routerLink="/dashboard"
+          (click)="closeMobileMenu()" routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >
+          <i class="bi bi-speedometer2"></i>
+          Dashboard
+        </a>
+      </li>
+      <li *ngIf="auth.isAdminGeneral() || auth.isAdminBarrio()">
+        <a
+          routerLink="/users"
+          (click)="closeMobileMenu()" routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >
+          <i class="bi bi-people"></i>
+          {{ auth.isAdminBarrio() ? 'Habitantes de mi barrio' : 'Usuarios' }}
+        </a>
+      </li>
+      <li *ngIf="auth.isAdminGeneral()">
+        <a
           routerLink="/neighborhoods"
-          routerLinkActive="active"
+          (click)="closeMobileMenu()" routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: true }"
         >
           <i class="bi bi-building"></i>
@@ -28,20 +54,9 @@
       </li>
 
       <li *ngIf="auth.isAdminGeneral()">
-        <a routerLink="/upcs" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        <a routerLink="/upcs" (click)="closeMobileMenu()" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
           <i class="bi bi-shield-check"></i>
           Gestión de UPCs
-        </a>
-      </li>
-
-      <li *ngIf="auth.isAdminGeneral() || auth.isAdminBarrio()">
-        <a
-          routerLink="/users"
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: true }"
-        >
-          <i class="bi bi-people"></i>
-          Usuarios
         </a>
       </li>
 
@@ -53,6 +68,7 @@
       </li>
     </ul>
   </nav>
+  <button *ngIf="mobileMenuOpen" type="button" class="sidebar-backdrop" (click)="closeMobileMenu()" aria-label="Cerrar menú"></button>
 
   <main class="content">
     <router-outlet></router-outlet>

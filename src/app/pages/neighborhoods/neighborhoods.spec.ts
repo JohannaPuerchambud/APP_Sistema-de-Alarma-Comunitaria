@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 
@@ -47,4 +47,23 @@ describe('Neighborhoods', () => {
     expect(component.representativeCandidates.some((item) => item.key === 'existing:10')).toBeTrue();
     expect(component.representativeCandidates.some((item) => item.key === 'new:0')).toBeTrue();
   });
-});
+
+  it('avanza de información a delimitación cuando el barrio tiene nombre', fakeAsync(() => {
+    component.selected = { name: 'La Victoria', boundary: null };
+    spyOn<any>(component, 'mountEditBoundaryMap');
+
+    component.editNext();
+    tick(150);
+
+    expect(component.editStep).toBe(2);
+    expect((component as any).mountEditBoundaryMap).toHaveBeenCalled();
+  }));
+  it('avanza de delimitación al resumen antes de guardar', () => {
+    component.editStep = 2;
+    spyOn<any>(component, 'destroyBoundaryMap');
+
+    component.editNext();
+
+    expect(Number(component.editStep)).toBe(3);
+    expect((component as any).destroyBoundaryMap).toHaveBeenCalled();
+  });});

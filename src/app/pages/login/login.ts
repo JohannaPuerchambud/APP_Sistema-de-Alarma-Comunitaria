@@ -49,7 +49,7 @@ export class Login {
           return;
         }
 
-        this.router.navigate(['/users']);
+        this.router.navigate(['/dashboard']);
         this.loading = false;
       },
       error: () => {

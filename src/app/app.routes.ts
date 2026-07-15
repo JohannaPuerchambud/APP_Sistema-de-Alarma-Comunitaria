@@ -9,7 +9,14 @@ export const routes: Routes = [
     loadComponent: () => import('./layouts/admin').then((m) => m.AdminLayout),
     canActivate: [roleGuard([1, 2])],
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'users' },
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+
+      {
+        path: 'dashboard',
+        canActivate: [roleGuard([1, 2])],
+        loadComponent: () =>
+          import('./pages/map-viewer/map-viewer').then((m) => m.MapViewerComponent),
+      },
 
       {
         path: 'users',
@@ -18,11 +25,11 @@ export const routes: Routes = [
       },
       {
         path: 'neighborhoods',
-        canActivate: [roleGuard([1, 2])],
+        canActivate: [roleGuard([1])],
         loadComponent: () =>
           import('./pages/neighborhoods/neighborhoods').then((m) => m.Neighborhoods),
       },
-      { path: 'map-viewer', redirectTo: 'neighborhoods', pathMatch: 'full' },
+      { path: 'map-viewer', redirectTo: 'dashboard', pathMatch: 'full' },
       {
         path: 'upcs',
         canActivate: [roleGuard([1])],

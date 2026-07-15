@@ -1,11 +1,11 @@
 <div class="container-fluid neighborhoods-page">
-  <header class="neighborhoods-header">
+  <header class="neighborhoods-header app-page-header">
     <div>
-      <span class="section-kicker">Administración territorial</span>
-      <h1>Barrios y habitantes</h1>
-      <p>Selecciona un barrio para consultar su mapa, habitantes, representante y reportes.</p>
+      <span class="section-kicker app-kicker">Administración territorial</span>
+      <h1 class="app-page-title">Barrios y habitantes</h1>
+      <p class="app-page-description">Crea barrios, asigna sus habitantes y define al representante desde un solo lugar.</p>
     </div>
-    <button *ngIf="isAdminGeneral" class="btn btn-primary" (click)="openWizard()">
+    <button *ngIf="isAdminGeneral" class="btn btn-primary app-primary-action" (click)="openWizard()">
       <i class="bi bi-plus-lg"></i> Nuevo barrio
     </button>
   </header>
@@ -13,7 +13,7 @@
   <div class="master-detail-layout">
     <aside class="master-panel">
       <div class="master-panel-header">
-        <div><span class="section-kicker">Maestro</span><h2>Barrios</h2></div>
+        <div><span class="section-kicker app-kicker">Barrios</span><h2>Total</h2></div>
         <span class="total-pill">{{ filteredItems.length }}</span>
       </div>
       <div class="master-search">
@@ -30,11 +30,6 @@
           <span class="master-item-content">
             <strong>{{ neighborhood.name }}</strong>
             <small><i class="bi bi-person-badge"></i> {{ neighborhood.admin_name ? neighborhood.admin_name + ' ' + (neighborhood.admin_last_name || '') : 'Sin representante' }}</small>
-            <small><i class="bi bi-shield-check"></i> {{ neighborhood.upc_name || 'Sin UPC' }}</small>
-          </span>
-          <span class="master-actions" *ngIf="isAdminGeneral">
-            <span class="master-action" (click)="$event.stopPropagation(); openModal('edit', neighborhood)" title="Editar"><i class="bi bi-pencil"></i></span>
-            <span class="master-action danger" (click)="$event.stopPropagation(); remove(neighborhood.neighborhood_id)" title="Eliminar"><i class="bi bi-trash"></i></span>
           </span>
         </button>
         <div class="master-empty" *ngIf="filteredItems.length === 0"><i class="bi bi-inbox"></i><span>No se encontraron barrios.</span></div>
@@ -51,19 +46,22 @@
       <app-map-viewer
         *ngIf="selectedNeighborhoodId; else selectNeighborhoodPrompt"
         [embedded]="true"
+        [managementOnly]="true"
         [neighborhoodId]="selectedNeighborhoodId"
         [canManage]="isAdminGeneral"
-        [refreshKey]="detailRefresh">
+        [refreshKey]="detailRefresh"
+        (editRequested)="openModal('edit', $event)"
+        (deleteRequested)="remove($event.neighborhood_id)">
       </app-map-viewer>
       <ng-template #selectNeighborhoodPrompt>
-        <div class="detail-placeholder"><i class="bi bi-map"></i><h2>Selecciona un barrio</h2><p>Aquí aparecerá el panel detalle.</p></div>
+        <div class="detail-placeholder"><i class="bi bi-people"></i><h2>Selecciona un barrio</h2><p>Aquí podrás consultar y administrar sus habitantes.</p></div>
       </ng-template>
     </main>
   </div>
 </div>
 <!-- ═══════════════════ WIZARD MODAL (4 PASOS) ═══════════════════ -->
 <div class="modal fade" id="wizardModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content wizard-content">
 
       <!-- Header -->
@@ -430,64 +428,84 @@
 
 <!-- ═══════════════════ MODAL EDITAR ═══════════════════ -->
 <div class="modal fade" id="modalNeighborhood" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header text-white" style="background: #667eea;">
-        <h5 class="modal-title">Editar Barrio</h5>
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content wizard-content">
+      <div class="modal-header wizard-header">
+        <div class="wizard-title-group"><i class="bi bi-building-fill wizard-icon"></i><h5 class="modal-title">Editar Barrio</h5></div>
         <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
       </div>
-      <div class="modal-body">
-        <form>
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Nombre del barrio</label>
-              <input class="form-control" [(ngModel)]="selected.name" name="name" required>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Descripción</label>
-              <input class="form-control" [(ngModel)]="selected.description" name="description">
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Número Chip Alarma (Para Twilio)</label>
-              <input class="form-control" [(ngModel)]="selected.alarm_number" name="alarm_number" placeholder="+593961662731">
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">UPC Asignada</label>
-              <select class="form-select" [(ngModel)]="selected.upc_id" name="upc_id">
-                <option value="">-- Sin UPC --</option>
-                <option *ngFor="let u of upcs" [value]="u.upc_id">{{ u.name }}</option>
-              </select>
-            </div>
-            <div class="col-12 mb-3">
-              <label class="form-label d-flex align-items-center gap-2">
-                <i class="bi bi-person-badge text-success"></i>
-                Representante del Barrio
-              </label>
-              <select class="form-select" [(ngModel)]="selectedAdminId" name="selectedAdminId">
-                <option [ngValue]="null">-- Sin representante --</option>
-                <option *ngFor="let a of admins" [ngValue]="a.user_id">{{ adminLabel(a) }}</option>
-              </select>
-              <small class="text-muted">El representante es el usuario con rol "Admin Barrio".</small>
-            </div>
-            <div class="col-12 mt-2">
-              <label class="form-label d-flex justify-content-between align-items-center">
-                <span>Delimitación del Barrio en el Mapa</span>
-                <div>
-                  <button type="button" class="btn btn-sm btn-outline-secondary me-2" (click)="finishDrawing()">Cerrar Polígono</button>
-                  <button type="button" class="btn btn-sm btn-outline-danger" (click)="clearMap()">Borrar Dibujo</button>
-                </div>
-              </label>
-              <p class="text-muted" style="font-size: 12px; margin-bottom: 8px;">
-                Haz clic en el mapa para delimitar el área. Doble clic en un vértice para borrarlo.
-              </p>
-              <div id="neighborhood-map"></div>
-            </div>
-          </div>
-        </form>
+
+      <div class="wizard-stepper three-stepper">
+        <div class="step" [class.active]="editStep >= 1" [class.done]="editStep > 1">
+          <div class="step-circle"><i class="bi bi-check-lg" *ngIf="editStep > 1"></i><span *ngIf="editStep <= 1">1</span></div>
+          <span class="step-label">Información</span>
+        </div>
+        <div class="step-line" [class.done]="editStep > 1"></div>
+        <div class="step" [class.active]="editStep >= 2" [class.done]="editStep > 2">
+          <div class="step-circle"><i class="bi bi-check-lg" *ngIf="editStep > 2"></i><span *ngIf="editStep <= 2">2</span></div>
+          <span class="step-label">Delimitación</span>
+        </div>
+        <div class="step-line" [class.done]="editStep > 2"></div>
+        <div class="step" [class.active]="editStep >= 3">
+          <div class="step-circle">3</div>
+          <span class="step-label">Resumen</span>
+        </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
-        <button class="btn btn-success" (click)="save()"><i class="bi bi-save"></i> Guardar Barrio</button>
+
+      <div class="modal-body wizard-body">
+        <form>
+          <div class="wizard-step-content" *ngIf="editStep === 1">
+            <h6 class="step-title"><i class="bi bi-info-circle-fill me-2 text-primary"></i>Información del barrio</h6>
+            <div class="row">
+              <div class="col-md-6 mb-3"><label class="form-label">Nombre del barrio <span class="text-danger">*</span></label><input class="form-control" [(ngModel)]="selected.name" name="name" required /></div>
+              <div class="col-md-6 mb-3"><label class="form-label">Descripción</label><input class="form-control" [(ngModel)]="selected.description" name="description" /></div>
+              <div class="col-md-6 mb-3"><label class="form-label">Número Chip Alarma <small class="text-muted">(Twilio)</small></label><input class="form-control" [(ngModel)]="selected.alarm_number" name="alarm_number" placeholder="+593961662731" /></div>
+              <div class="col-md-6 mb-3"><label class="form-label">UPC Asignada</label><select class="form-select" [(ngModel)]="selected.upc_id" name="upc_id"><option value="">-- Sin UPC --</option><option *ngFor="let u of upcs" [value]="u.upc_id">{{ u.name }}</option></select></div>
+              <div class="col-12 mb-3">
+                <label class="form-label"><i class="bi bi-person-badge text-success me-2"></i>Representante del Barrio</label>
+                <select class="form-select" [(ngModel)]="selectedAdminId" name="selectedAdminId"><option [ngValue]="null">-- Sin representante --</option><option *ngFor="let a of admins" [ngValue]="a.user_id">{{ adminLabel(a) }}</option></select>
+                <small class="text-muted">El representante conserva el acceso móvil y administra la información de su barrio.</small>
+              </div>
+            </div>
+            <div class="wizard-hint"><i class="bi bi-lightbulb-fill"></i>En el siguiente paso podrás revisar o modificar la delimitación territorial.</div>
+          </div>
+
+          <div class="wizard-step-content" *ngIf="editStep === 2">
+            <h6 class="step-title"><i class="bi bi-bounding-box me-2 text-danger"></i>Delimitación del barrio <span class="badge-optional">Opcional</span></h6>
+            <p class="step-hint">Haz clic para añadir vértices · Arrastra para ajustar · Doble clic para borrar un punto.</p>
+            <div class="map-actions mb-2"><button type="button" class="btn btn-sm btn-outline-success me-2" (click)="finishDrawing()"><i class="bi bi-check2-all me-1"></i>Cerrar Polígono</button><button type="button" class="btn btn-sm btn-outline-danger" (click)="clearMap()"><i class="bi bi-trash me-1"></i>Borrar Dibujo</button></div>
+            <div id="neighborhood-map"></div>
+            <div class="wizard-hint mt-2" *ngIf="drawingPoints.length"><i class="bi bi-geo-alt-fill"></i>{{ drawingPoints.length }} punto(s). Se necesitan al menos 3 para guardar el perímetro.</div>
+            <div class="wizard-hint mt-2" *ngIf="!drawingPoints.length"><i class="bi bi-info-circle"></i>Puedes guardar el barrio sin delimitación y completarla después.</div>
+          </div>
+
+          <div class="wizard-step-content" *ngIf="editStep === 3">
+            <h6 class="step-title"><i class="bi bi-clipboard-check-fill me-2 text-primary"></i>Resumen del barrio</h6>
+            <div class="summary-card">
+              <div class="summary-row"><span class="summary-label">Barrio</span><span class="summary-value"><strong>{{ selected.name }}</strong></span></div>
+              <div class="summary-row"><span class="summary-label">Descripción</span><span class="summary-value">{{ selected.description || '—' }}</span></div>
+              <div class="summary-row"><span class="summary-label">Alarma</span><span class="summary-value">{{ selected.alarm_number || 'Sin configurar' }}</span></div>
+              <div class="summary-row"><span class="summary-label">UPC</span><span class="summary-value">{{ getUpcName(selected.upc_id) }}</span></div>
+              <div class="summary-row"><span class="summary-label">Representante</span><span class="summary-value">{{ selectedEditAdminLabel }}</span></div>
+              <div class="summary-row">
+                <span class="summary-label">Perímetro</span>
+                <span class="summary-value">
+                  <span *ngIf="drawingPoints.length >= 3" class="text-success"><i class="bi bi-check-circle-fill me-1"></i>{{ drawingPoints.length }} puntos definidos</span>
+                  <span *ngIf="drawingPoints.length === 0" class="text-muted">Sin delimitar</span>
+                </span>
+              </div>
+            </div>
+            <div class="wizard-hint mt-4"><i class="bi bi-info-circle"></i>Revisa los cambios antes de guardarlos. Puedes volver con <strong>Atrás</strong> para corregir la delimitación.</div>
+          </div>        </form>
+      </div>
+
+      <div class="modal-footer wizard-footer">
+        <button class="btn btn-light" (click)="closeModal()">Cancelar</button>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary" *ngIf="editStep > 1" (click)="editBack()"><i class="bi bi-arrow-left me-1"></i>Atrás</button>
+          <button class="btn btn-primary" *ngIf="editStep < 3" (click)="editNext()">Siguiente <i class="bi bi-arrow-right ms-1"></i></button>
+          <button class="btn btn-success" *ngIf="editStep === 3" (click)="save()"><i class="bi bi-check-circle me-1"></i>Guardar cambios</button>
+        </div>
       </div>
     </div>
   </div>

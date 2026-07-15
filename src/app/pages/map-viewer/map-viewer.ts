@@ -1,18 +1,21 @@
 import { CommonModule } from '@angular/common';
 import {
   Component,
+  EventEmitter,
   Input,
   OnChanges,
   OnDestroy,
   OnInit,
+  Output,
   SimpleChanges,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
 import * as L from 'leaflet';
 import { NeighborhoodService } from '../../core/services/neighborhood';
 import { ReportService } from '../../core/services/report';
 import { UserService } from '../../core/services/user';
+import { AuthService } from '../../core/auth/auth.service';
 
 declare const bootstrap: any;
 
@@ -37,9 +40,12 @@ L.Marker.prototype.options.icon = iconDefault;
 })
 export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
   @Input() embedded = false;
+  @Input() managementOnly = false;
   @Input() neighborhoodId: number | null = null;
   @Input() canManage = false;
   @Input() refreshKey = 0;
+  @Output() editRequested = new EventEmitter<any>();
+  @Output() deleteRequested = new EventEmitter<any>();
 
   map?: L.Map;
   neighborhoods: any[] = [];
@@ -58,6 +64,12 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
   residentSearch = '';
   residentsPage = 1;
   residentsPerPage = 10;
+
+  reportSearch = '';
+  reportsPage = 1;
+  reportsPerPage = 10;
+  reportSort: 'newest' | 'oldest' = 'newest';
+  expandedReportKeys = new Set<string>();
 
   assignmentSearch = '';
   selectedAssignmentIds = new Set<number>();
@@ -78,20 +90,31 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     private neighborhoodService: NeighborhoodService,
     private userService: UserService,
     private reportService: ReportService,
+    private auth: AuthService,
   ) {}
 
+  get isAdminGeneral(): boolean {
+    return this.auth.isAdminGeneral();
+  }
+
+  get isAdminBarrio(): boolean {
+    return this.auth.isAdminBarrio();
+  }
+
+  get assignedNeighborhoodId(): number {
+    return Number(this.auth.neighborhood() || 0);
+  }
+
   ngOnInit(): void {
-    this.initMap();
     this.loadData();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (!this.map) return;
     if (changes['refreshKey'] && !changes['refreshKey'].firstChange) {
       this.loadData();
       return;
     }
-    if (changes['neighborhoodId']) {
+    if (changes['neighborhoodId'] && this.neighborhoods.length > 0) {
       this.selectNeighborhood(Number(this.neighborhoodId || 0));
     }
   }
@@ -101,8 +124,11 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     this.map?.remove();
   }
 
-  private initMap(): void {
-    this.map = L.map('map-viewer-id').setView([0.3517, -78.1223], 13);
+  private ensureMap(): void {
+    if (this.map || this.managementOnly) return;
+    const container = document.getElementById('map-viewer-id');
+    if (!container) return;
+    this.map = L.map(container).setView([0.3517, -78.1223], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors',
@@ -117,16 +143,27 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     forkJoin({
       neighborhoods: this.neighborhoodService.getAll(),
       users: this.userService.getAll(),
-      reports: this.reportService.getAll(),
+      reports: this.managementOnly ? of([]) : this.reportService.getAll(),
     }).subscribe({
       next: ({ neighborhoods, users, reports }) => {
         this.neighborhoods = neighborhoods;
         this.allUsers = users;
         this.allReports = reports;
-        this.drawAllNeighborhoods();
-        const targetId = Number(this.neighborhoodId || this.selectedNeighborhoodId || 0);
-        this.selectNeighborhood(targetId);
         this.loading = false;
+        const targetId = this.isAdminBarrio
+          ? this.assignedNeighborhoodId
+          : Number(this.neighborhoodId || this.selectedNeighborhoodId || 0);
+
+        if (this.isAdminBarrio && !targetId) {
+          this.errorMessage =
+            'Tu cuenta de representante todavía no tiene un barrio asignado. Contacta al administrador general.';
+        }
+        this.selectNeighborhood(targetId);
+        setTimeout(() => {
+          this.ensureMap();
+          this.drawAllNeighborhoods();
+          this.selectNeighborhood(targetId);
+        });
       },
       error: () => {
         this.errorMessage = 'No se pudo cargar el panel del barrio.';
@@ -140,7 +177,9 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   selectNeighborhood(id: number): void {
-    if (!this.map) return;
+    if (this.isAdminBarrio) {
+      id = this.assignedNeighborhoodId;
+    }
     this.selectedNeighborhoodId = id;
     this.userMarkersLayer.clearLayers();
     this.markerMap.clear();
@@ -152,11 +191,12 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     if (!id) {
+      this.activeTab = 'summary';
       this.selectedNeighborhoodInfo = null;
       this.neighborhoodUsers = [];
       this.neighborhoodReports = [];
       this.representative = null;
-      this.map.setView([0.3517, -78.1223], 13);
+      this.fitAllNeighborhoods();
       setTimeout(() => this.map?.invalidateSize(), 100);
       return;
     }
@@ -180,6 +220,9 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     );
     this.residentSearch = '';
     this.residentsPage = 1;
+    this.reportSearch = '';
+    this.reportsPage = 1;
+    this.expandedReportKeys.clear();
 
     for (const user of this.neighborhoodUsers) {
       const lat = Number(user.home_lat);
@@ -200,17 +243,17 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
       polygon.setStyle(this.highlightStyle);
       polygon.bringToFront();
       this.selectedPolygon = polygon;
-      this.map.fitBounds(polygon.getBounds(), { padding: [24, 24] });
+      this.map?.fitBounds(polygon.getBounds(), { padding: [24, 24] });
     } else if (this.markerMap.size > 0) {
       const group = L.featureGroup([...this.markerMap.values()]);
-      this.map.fitBounds(group.getBounds(), { padding: [24, 24], maxZoom: 17 });
+      this.map?.fitBounds(group.getBounds(), { padding: [24, 24], maxZoom: 17 });
     }
     setTimeout(() => this.map?.invalidateSize(), 150);
   }
 
   setTab(tab: 'summary' | 'residents' | 'reports'): void {
     this.activeTab = tab;
-    if (tab === 'summary') setTimeout(() => this.map?.invalidateSize(), 100);
+    if (tab === 'summary') setTimeout(() => { this.ensureMap(); this.map?.invalidateSize(); }, 100);
   }
 
   get filteredResidents(): any[] {
@@ -245,6 +288,54 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     this.residentsPage = 1;
   }
 
+  get filteredReports(): any[] {
+    const query = this.reportSearch.trim().toLowerCase();
+    const reports = this.neighborhoodReports.filter((report) =>
+      !query || [report.title, report.description, report.name, report.last_name]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query)),
+    );
+    const direction = this.reportSort === 'newest' ? -1 : 1;
+    return [...reports].sort((left, right) =>
+      direction * (new Date(left.created_at).getTime() - new Date(right.created_at).getTime()),
+    );
+  }
+
+  get paginatedReports(): any[] {
+    const start = (this.reportsPage - 1) * this.reportsPerPage;
+    return this.filteredReports.slice(start, start + this.reportsPerPage);
+  }
+
+  get reportsTotalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredReports.length / this.reportsPerPage));
+  }
+
+  get reportPageNumbers(): number[] {
+    return Array.from({ length: this.reportsTotalPages }, (_, index) => index + 1);
+  }
+
+  onReportFiltersChange(): void {
+    this.reportsPage = 1;
+  }
+
+  changeReportsPage(page: number): void {
+    if (page < 1 || page > this.reportsTotalPages) return;
+    this.reportsPage = page;
+  }
+
+  reportKey(report: any): string {
+    return String(report.report_id ?? `${report.created_at || ''}:${report.title || ''}`);
+  }
+
+  isReportExpanded(report: any): boolean {
+    return this.expandedReportKeys.has(this.reportKey(report));
+  }
+
+  toggleReport(report: any): void {
+    const key = this.reportKey(report);
+    if (this.expandedReportKeys.has(key)) this.expandedReportKeys.delete(key);
+    else this.expandedReportKeys.add(key);
+  }
   get recentReports(): any[] {
     return this.neighborhoodReports.slice(0, 5);
   }
@@ -270,6 +361,13 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     });
   }
 
+  requestEdit(): void {
+    if (this.selectedNeighborhoodInfo) this.editRequested.emit(this.selectedNeighborhoodInfo);
+  }
+
+  requestDelete(): void {
+    if (this.selectedNeighborhoodInfo) this.deleteRequested.emit(this.selectedNeighborhoodInfo);
+  }
   openAssignmentModal(): void {
     this.assignmentSearch = '';
     this.selectedAssignmentIds.clear();
@@ -337,13 +435,29 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
           coordinates.map((point: any[]) => L.latLng(point[0], point[1])),
           this.defaultStyle,
         );
-        polygon.bindPopup(this.createPopup(neighborhood.name));
+        polygon.bindPopup(this.createPopup(neighborhood.name, 'Haz clic para ver el detalle'));
+        polygon.on('click', () =>
+          this.selectNeighborhood(Number(neighborhood.neighborhood_id)),
+        );
         polygon.addTo(this.allLayers);
         this.layerMap[Number(neighborhood.neighborhood_id)] = polygon;
       } catch {
         // Un perímetro inválido no debe impedir cargar los demás barrios.
       }
     }
+  }
+
+
+  private fitAllNeighborhoods(): void {
+    if (!this.map) return;
+    const polygons = Object.values(this.layerMap);
+    if (polygons.length === 0) {
+      this.map.setView([0.3517, -78.1223], 13);
+      return;
+    }
+    const group = L.featureGroup(polygons);
+    const bounds = group.getBounds();
+    if (bounds.isValid()) this.map.fitBounds(bounds, { padding: [30, 30] });
   }
 
   private createPopup(title: unknown, subtitle?: string): HTMLElement {

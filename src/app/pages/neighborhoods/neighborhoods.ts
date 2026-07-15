@@ -46,6 +46,7 @@ export class Neighborhoods implements OnInit {
   // ── Edit modal ────────────────────────────────────────────────────────────
   selected: any = {};
   modalMode: 'add' | 'edit' = 'add';
+  editStep: 1 | 2 | 3 = 1;
   loading = false;
 
   // ── Table list ────────────────────────────────────────────────────────────
@@ -263,9 +264,15 @@ export class Neighborhoods implements OnInit {
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   adminLabel(admin: any): string {
-    const name = `${admin.name || ''} ${admin.last_name || ''}`.trim();
-    const cur  = admin.neighborhood_name ? ` (en: ${admin.neighborhood_name})` : '';
-    return `${name} — ${admin.email}${cur}`;
+    const suffix = admin.neighborhood_name ? ' · ' + admin.neighborhood_name : '';
+    return (admin.name + ' ' + (admin.last_name || '') + suffix).trim();
+  }
+
+  get selectedEditAdminLabel(): string {
+    const admin = this.admins.find(
+      (item) => Number(item.user_id) === Number(this.selectedAdminId),
+    );
+    return admin ? this.adminLabel(admin) : 'Sin representante';
   }
 
   getUpcName(upcId: any): string {
@@ -640,31 +647,86 @@ export class Neighborhoods implements OnInit {
 
   openModal(mode: 'add' | 'edit', item?: any) {
     this.modalMode = mode;
-    if (mode === 'edit') { this.selected = { ...item }; this.selectedAdminId = item.admin_user_id ?? null; }
-    else { this.selected = { name: '', description: '', alarm_number: '', upc_id: '', boundary: '' }; this.selectedAdminId = null; }
+    this.editStep = 1;
+    this.destroyBoundaryMap();
+    if (mode === 'edit') {
+      this.selected = { ...item };
+      this.selectedAdminId = item.admin_user_id ?? null;
+    } else {
+      this.selected = { name: '', description: '', alarm_number: '', upc_id: '', boundary: '' };
+      this.selectedAdminId = null;
+    }
 
-    const el = document.getElementById('modalNeighborhood')!;
-    new bootstrap.Modal(el).show();
-    el.addEventListener('shown.bs.modal', () => {
-      this.initBoundaryMap('neighborhood-map');
-      if (this.selected.boundary) {
-        try {
-          const coords = typeof this.selected.boundary === 'string'
-            ? JSON.parse(this.selected.boundary) : this.selected.boundary;
-          if (Array.isArray(coords)) {
-            coords.forEach((p: any) => { if (Array.isArray(p) && p.length === 2) this.addBoundaryPoint(L.latLng(p[0], p[1])); });
-            this.isDrawing = false;
-            if (this.drawingLayer) { this.drawingLayer.setStyle({ color: '#dc3545', dashArray: undefined }); this.map!.fitBounds(this.drawingLayer.getBounds()); }
-          }
-        } catch (e) { console.error(e); }
+    const element = document.getElementById('modalNeighborhood')!;
+    bootstrap.Modal.getOrCreateInstance(element).show();
+  }
+
+  editNext(): void {
+    if (this.editStep === 1) {
+      if (!this.selected.name?.trim()) {
+        alert('El nombre del barrio es obligatorio.');
+        return;
       }
-    }, { once: true });
+      this.editStep = 2;
+      setTimeout(() => this.mountEditBoundaryMap(), 150);
+      return;
+    }
+
+    if (this.drawingPoints.length > 0 && this.drawingPoints.length < 3) {
+      alert('Debes dibujar al menos 3 puntos o borrar la delimitación.');
+      return;
+    }
+    this.persistEditBoundary();
+    this.destroyBoundaryMap();
+    this.editStep = 3;
+  }
+
+  editBack(): void {
+    if (this.editStep === 3) {
+      this.editStep = 2;
+      setTimeout(() => this.mountEditBoundaryMap(), 150);
+      return;
+    }
+
+    this.persistEditBoundary();
+    this.destroyBoundaryMap();
+    this.editStep = 1;
+  }
+
+  private persistEditBoundary(): void {
+    this.selected.boundary = this.drawingPoints.length
+      ? JSON.stringify(this.drawingPoints.map((point) => [point.lat, point.lng]))
+      : null;
+  }
+
+  private mountEditBoundaryMap(): void {
+    this.initBoundaryMap('neighborhood-map');
+    if (!this.selected.boundary) return;
+    try {
+      const coordinates = typeof this.selected.boundary === 'string'
+        ? JSON.parse(this.selected.boundary)
+        : this.selected.boundary;
+      if (!Array.isArray(coordinates)) return;
+      coordinates.forEach((point: any) => {
+        if (Array.isArray(point) && point.length === 2) {
+          this.addBoundaryPoint(L.latLng(point[0], point[1]));
+        }
+      });
+      if (coordinates.length >= 3) {
+        this.isDrawing = false;
+        this.drawingLayer?.setStyle({ color: '#dc3545', dashArray: undefined });
+      }
+      if (this.drawingLayer) this.map?.fitBounds(this.drawingLayer.getBounds());
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   closeModal() {
     const el = document.getElementById('modalNeighborhood')!;
     bootstrap.Modal.getInstance(el)?.hide();
     this.destroyBoundaryMap();
+    this.editStep = 1;
   }
 
   save() {

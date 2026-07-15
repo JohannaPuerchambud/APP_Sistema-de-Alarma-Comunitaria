@@ -15,6 +15,7 @@ export class AdminLayout implements OnInit {
   userName: string = '';
   userRole: string = '';
   userLastName: string = '';
+  mobileMenuOpen = false;
 
   constructor(
     private router: Router,
@@ -40,11 +41,20 @@ export class AdminLayout implements OnInit {
 
     const role = claims.role;
     if (role === 1) this.userRole = 'Admin General';
-    else if (role === 2) this.userRole = 'Admin Barrio';
+    else if (role === 2) this.userRole = 'Representante del barrio';
     else this.userRole = 'Usuario';
   }
 
+  toggleMobileMenu() {
+    this.mobileMenuOpen = !this.mobileMenuOpen;
+  }
+
+  closeMobileMenu() {
+    this.mobileMenuOpen = false;
+  }
+
   logout() {
+    this.closeMobileMenu();
     this.auth.logout();
     this.router.navigate(['/login']);
   }

@@ -1,15 +1,19 @@
-<div class="container mt-4">
-  <div class="page-header">
-    <h4 class="m-0">Gestión de UPCs</h4>
-    <button class="btn btn-primary" (click)="openModal('add')">
+<section class="app-page-shell">
+  <header class="page-header app-page-header">
+    <div class="app-page-heading">
+      <span class="app-kicker">Administración territorial</span>
+      <h1 class="app-page-title">Gestión de UPCs</h1>
+      <p class="app-page-description">Administra la información, ubicación y cobertura de las unidades de policía comunitaria.</p>
+    </div>
+    <button class="btn btn-primary app-primary-action" (click)="openModal('add')">
       <i class="bi bi-plus-lg"></i> Nueva UPC
     </button>
-  </div>
+  </header>
 
   <div *ngIf="loading" class="alert alert-info">Cargando...</div>
 
-  <div class="table-container" *ngIf="!loading">
-    <table class="table table-striped">
+  <div class="table-container app-table-shell" *ngIf="!loading">
+    <table class="table app-data-table">
       <thead>
         <tr>
           <th>ID</th>
@@ -22,38 +26,38 @@
       </thead>
       <tbody>
         <tr *ngFor="let u of upcs">
-          <td>{{ u.upc_id }}</td>
-          <td><strong>{{ u.name }}</strong></td>
-          <td>{{ u.address || '—' }}</td>
-          <td>
+          <td data-label="ID">{{ u.upc_id }}</td>
+          <td data-label="Nombre"><strong>{{ u.name }}</strong></td>
+          <td data-label="Dirección">{{ u.address || '—' }}</td>
+          <td data-label="Coordenadas">
             <span *ngIf="u.lat && u.lng" class="text-muted" style="font-size:12px">
               <i class="bi bi-geo-alt text-primary"></i>
               {{ u.lat | number:'1.4-4' }}, {{ u.lng | number:'1.4-4' }}
             </span>
             <span *ngIf="!u.lat || !u.lng" class="text-muted">—</span>
           </td>
-          <td>{{ u.phone || '—' }}</td>
-          <td>
-            <button class="btn btn-sm btn-outline-primary me-2" (click)="openModal('edit', u)" title="Editar">
+          <td data-label="Teléfono">{{ u.phone || '—' }}</td>
+          <td data-label="Acciones" class="app-actions">
+            <button class="btn btn-sm btn-outline-primary me-2 app-icon-button" (click)="openModal('edit', u)" title="Editar">
               <i class="bi bi-pencil"></i>
             </button>
-            <button class="btn btn-sm btn-outline-danger" (click)="remove(u.upc_id)" title="Eliminar">
+            <button class="btn btn-sm btn-outline-danger app-icon-button" (click)="remove(u.upc_id)" title="Eliminar">
               <i class="bi bi-trash"></i>
             </button>
           </td>
         </tr>
         <tr *ngIf="upcs.length === 0">
-          <td colspan="6" class="text-center text-muted py-4">No hay UPCs registradas.</td>
+          <td colspan="6" class="text-center text-muted py-4 app-empty-cell">No hay UPCs registradas.</td>
         </tr>
       </tbody>
     </table>
   </div>
-</div>
+</section>
 
 
 <!-- ═══════════════════ WIZARD MODAL UPC (4 pasos) ═══════════════════ -->
 <div class="modal fade" id="modalUpc" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content wizard-content">
 
       <!-- Header -->
@@ -198,7 +202,7 @@
             Haz clic en el mapa para añadir vértices · Arrastra para ajustar · Doble clic para borrar un punto.
           </p>
           <div class="map-actions mb-2">
-            <button type="button" class="btn btn-sm btn-outline-danger" (click)="clearCoverageMap()">
+            <button type="button" class="btn btn-sm btn-outline-danger app-icon-button" (click)="clearCoverageMap()">
               <i class="bi bi-trash me-1"></i>Limpiar Dibujo
             </button>
             <span class="ms-2 text-muted" style="font-size:12px" *ngIf="drawingPoints.length > 0">
