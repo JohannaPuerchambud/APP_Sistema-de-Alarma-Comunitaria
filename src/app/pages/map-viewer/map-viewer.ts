@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import {
   Component,
+  ElementRef,
   EventEmitter,
   Input,
   OnChanges,
@@ -8,6 +9,7 @@ import {
   OnInit,
   Output,
   SimpleChanges,
+  ViewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
@@ -82,6 +84,18 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
   private markerMap = new Map<number, L.Marker>();
   private selectedPolygon: L.Polygon | null = null;
   private assignmentModal: any = null;
+  private mapContainerElement?: HTMLElement;
+  private mapRenderTimer?: ReturnType<typeof setTimeout>;
+  private mapResizeObserver?: ResizeObserver;
+  private pendingMapTargetId = 0;
+
+  @ViewChild('mapContainer')
+  set mapContainer(ref: ElementRef<HTMLElement> | undefined) {
+    this.mapContainerElement = ref?.nativeElement;
+    if (ref && !this.loading) {
+      this.scheduleMapRender(this.pendingMapTargetId || this.selectedNeighborhoodId);
+    }
+  }
 
   private readonly defaultStyle = { color: '#28a745', weight: 2, fillOpacity: 0.16 };
   private readonly highlightStyle = { color: '#667eea', weight: 4, fillOpacity: 0.28 };
@@ -122,12 +136,15 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
   ngOnDestroy(): void {
     this.assignmentModal?.hide();
     this.map?.remove();
+    if (this.mapRenderTimer) clearTimeout(this.mapRenderTimer);
+    this.mapResizeObserver?.disconnect();
   }
 
-  private ensureMap(): void {
-    if (this.map || this.managementOnly) return;
-    const container = document.getElementById('map-viewer-id');
-    if (!container) return;
+  private ensureMap(): boolean {
+    if (this.managementOnly) return false;
+    if (this.map) return true;
+    const container = this.mapContainerElement;
+    if (!container) return false;
     this.map = L.map(container).setView([0.3517, -78.1223], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -135,6 +152,31 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     }).addTo(this.map);
     this.allLayers.addTo(this.map);
     this.userMarkersLayer.addTo(this.map);
+    if (typeof ResizeObserver !== 'undefined') {
+      this.mapResizeObserver = new ResizeObserver(() => {
+        this.map?.invalidateSize({ animate: false });
+      });
+      this.mapResizeObserver.observe(container);
+    }
+    return true;
+
+  }
+
+  private scheduleMapRender(targetId: number): void {
+    if (this.managementOnly) return;
+    this.pendingMapTargetId = targetId;
+    if (this.mapRenderTimer) clearTimeout(this.mapRenderTimer);
+    this.mapRenderTimer = setTimeout(() => {
+      this.mapRenderTimer = undefined;
+      if (!this.ensureMap()) return;
+      this.drawAllNeighborhoods();
+      this.map?.invalidateSize({ animate: false });
+      this.selectNeighborhood(this.pendingMapTargetId);
+      setTimeout(() => {
+        this.map?.invalidateSize({ animate: false });
+        if (!this.pendingMapTargetId) this.fitAllNeighborhoods();
+      });
+    });
   }
 
   loadData(): void {
@@ -158,12 +200,9 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
           this.errorMessage =
             'Tu cuenta de representante todavía no tiene un barrio asignado. Contacta al administrador general.';
         }
+        this.pendingMapTargetId = targetId;
         this.selectNeighborhood(targetId);
-        setTimeout(() => {
-          this.ensureMap();
-          this.drawAllNeighborhoods();
-          this.selectNeighborhood(targetId);
-        });
+        this.scheduleMapRender(targetId);
       },
       error: () => {
         this.errorMessage = 'No se pudo cargar el panel del barrio.';
@@ -253,7 +292,7 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
 
   setTab(tab: 'summary' | 'residents' | 'reports'): void {
     this.activeTab = tab;
-    if (tab === 'summary') setTimeout(() => { this.ensureMap(); this.map?.invalidateSize(); }, 100);
+    if (tab === 'summary') this.scheduleMapRender(this.selectedNeighborhoodId);
   }
 
   get filteredResidents(): any[] {
