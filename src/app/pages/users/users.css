@@ -437,3 +437,15 @@
   .table.app-data-table { min-width: 0; }
   .table.app-data-table tbody td { padding: 9px 0; }
 }
+.modal-validation-message,
+.location-validation-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+  border: 1px solid #f4b8bd;
+  background: #fff4f5;
+  color: #a52834;
+}
+.modal-validation-message i,
+.location-validation-message i { flex: 0 0 auto; margin-top: 2px; }

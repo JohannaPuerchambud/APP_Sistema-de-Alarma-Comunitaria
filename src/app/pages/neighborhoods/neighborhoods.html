@@ -293,7 +293,8 @@
               <strong>{{ wizardUserLabel(currentDomicilioUser!) }}</strong>
               <span class="badge-optional">Opcional</span>
             </h6>
-            <p class="text-muted step-hint">Busca la dirección o haz clic directamente en el mapa para marcar el domicilio.</p>
+            <p class="text-muted step-hint" *ngIf="hasWizardBoundary"><i class="bi bi-shield-check me-1"></i>El domicilio debe estar dentro del área delimitada de <strong>{{ wizardData.name }}</strong>.</p>
+            <p class="text-muted step-hint" *ngIf="!hasWizardBoundary">Busca la dirección o haz clic directamente en el mapa para marcar el domicilio.</p>
 
             <div class="mb-2">
               <div class="input-group">
@@ -313,6 +314,11 @@
             </div>
 
             <div id="wizard-home-map"></div>
+
+            <div class="alert alert-danger location-validation-message mt-3" *ngIf="domicileError" role="alert">
+              <i class="bi bi-geo-alt-fill"></i>
+              <span>{{ domicileError }}</span>
+            </div>
 
             <div class="wizard-hint mt-2" *ngIf="currentDomicilioUser?.home_lat">
               <i class="bi bi-geo-alt-fill text-success"></i>
@@ -338,9 +344,8 @@
           </div>
 
           <div class="rep-scroll-list" *ngIf="filteredRepresentativeCandidates.length; else noRepresentativeCandidates">
-            <button type="button" *ngFor="let candidate of filteredRepresentativeCandidates"
-              class="rep-item w-100" [class.selected]="wizardRepresentativeKey === candidate.key"
-              (click)="selectRepresentative(candidate)">
+            <label *ngFor="let candidate of filteredRepresentativeCandidates"
+              class="rep-item w-100" [class.selected]="wizardRepresentativeKey === candidate.key">
               <div class="rep-avatar"><i class="bi bi-person-fill"></i></div>
               <div class="rep-info">
                 <strong>{{ candidate.name }} {{ candidate.last_name || '' }}</strong>
@@ -349,9 +354,20 @@
                 <small *ngIf="candidate.source === 'new'">Usuario nuevo · se creará como Representante</small>
                 <small *ngIf="candidate.source === 'admin'">Admin Barrio{{ candidate.neighborhood_name ? ' · ' + candidate.neighborhood_name : ' disponible' }}</small>
               </div>
-              <div class="rep-check"><i class="bi" [ngClass]="wizardRepresentativeKey === candidate.key ? 'bi-check-circle-fill' : 'bi-circle'"></i></div>
-            </button>
+              <input
+                class="form-check-input rep-radio-input"
+                type="radio"
+                name="wizardRepresentative"
+                [value]="candidate.key"
+                [checked]="wizardRepresentativeKey === candidate.key"
+                (change)="selectRepresentative(candidate.key)"
+                [attr.aria-label]="'Seleccionar a ' + candidate.name + ' como representante'"
+              />
+            </label>
           </div>
+          <button type="button" class="btn btn-link clear-representative" *ngIf="wizardRepresentativeKey" (click)="wizardRepresentativeKey = null">
+            <i class="bi bi-x-circle me-1"></i>Dejar sin representante
+          </button>
           <ng-template #noRepresentativeCandidates><div class="wizard-hint"><i class="bi bi-info-circle"></i> No hay candidatos. Puedes crear el barrio y asignar el representante después.</div></ng-template>
 
           <div class="representative-warning" *ngIf="selectedRepresentative?.source === 'existing'">

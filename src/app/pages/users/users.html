@@ -141,6 +141,10 @@
       </div>
 
       <div class="modal-body wizard-body">
+        <div class="alert alert-danger modal-validation-message" *ngIf="modalError" role="alert">
+          <i class="bi bi-exclamation-circle-fill"></i>
+          <span>{{ modalError }}</span>
+        </div>
         <form>
           <div class="wizard-step-content" *ngIf="userStep === 1">
             <h6 class="step-title"><i class="bi bi-info-circle-fill me-2 text-primary"></i>{{ isAdminBarrio ? 'Información del habitante' : 'Información del usuario' }}</h6>
@@ -196,8 +200,13 @@
               <small class="text-muted" *ngIf="geoLoading">Buscando...</small>
               <select *ngIf="geoResults.length" class="form-select mt-2" (change)="pickGeocodeResult($event)"><option value="">-- Selecciona un resultado --</option><option *ngFor="let r of geoResults; let i = index" [value]="i">{{ r.display_name }}</option></select>
             </div>
-            <p class="step-hint"><i class="bi bi-info-circle me-1"></i>Haz clic en el mapa para marcar el domicilio exacto o utiliza el buscador.</p>
+            <p class="step-hint" *ngIf="hasLocationBoundary"><i class="bi bi-shield-check me-1"></i>El domicilio debe estar dentro del área delimitada de <strong>{{ locationNeighborhoodName }}</strong>.</p>
+            <p class="step-hint" *ngIf="!hasLocationBoundary"><i class="bi bi-info-circle me-1"></i>Haz clic en el mapa para marcar el domicilio exacto o utiliza el buscador.</p>
             <div id="home-map"></div>
+            <div class="alert alert-danger location-validation-message mt-3" *ngIf="locationError" role="alert">
+              <i class="bi bi-geo-alt-fill"></i>
+              <span>{{ locationError }}</span>
+            </div>
             <div class="row mt-3">
               <div class="col-md-6 mb-2"><label class="form-label">Latitud</label><input class="form-control" [value]="selected.home_lat || ''" readonly /></div>
               <div class="col-md-6 mb-2"><label class="form-label">Longitud</label><input class="form-control" [value]="selected.home_lng || ''" readonly /></div>

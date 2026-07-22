@@ -42,4 +42,21 @@ describe('Users', () => {
 
     expect(Number(component.userStep)).toBe(3);
     expect((component as any).destroyHomeMap).toHaveBeenCalled();
-  });});
+  });
+
+  it('impide avanzar y explica cuando el correo ya existe', () => {
+    component.masterUserList = [{ user_id: 8, email: 'vecino@test.local' }];
+    component.modalMode = 'add';
+    component.selected = {
+      user_id: null,
+      name: 'Vecino',
+      email: 'VECINO@test.local',
+      password: 'Clave123',
+    };
+
+    component.userNext();
+
+    expect(component.userStep).toBe(1);
+    expect(component.modalError).toContain('ya está registrado');
+  });
+});

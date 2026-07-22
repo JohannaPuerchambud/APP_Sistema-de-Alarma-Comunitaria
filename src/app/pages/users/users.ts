@@ -7,6 +7,10 @@ import { AuthService } from '../../core/auth/auth.service';
 import * as L from 'leaflet';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import {
+  isPointInsideNeighborhood,
+  parseNeighborhoodBoundary,
+} from '../../core/utils/neighborhood-boundary';
 
 declare var bootstrap: any;
 
@@ -41,6 +45,8 @@ export class Users implements OnInit {
   showUserPassword = false;
   passwordPattern = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
   feedbackMessage = '';
+  modalError = '';
+  locationError = '';
 
   constructor(
     private userService: UserService,
@@ -87,6 +93,25 @@ export class Users implements OnInit {
     if (role === 1) return 'Admin General';
     if (role === 2) return 'Representante';
     return 'Habitante';
+  }
+
+  get locationNeighborhoodName(): string {
+    return this.locationNeighborhood?.name || 'el barrio seleccionado';
+  }
+
+  get hasLocationBoundary(): boolean {
+    return parseNeighborhoodBoundary(this.locationNeighborhood?.boundary).length >= 3;
+  }
+
+  private get locationNeighborhood(): any | null {
+    const neighborhoodId = this.isAdminBarrio
+      ? this.assignedNeighborhoodId
+      : Number(this.selected.neighborhood_id || 0);
+    return (
+      this.neighborhoods.find(
+        (item) => Number(item.neighborhood_id) === neighborhoodId,
+      ) || null
+    );
   }
 
   canManageUser(user: any): boolean {
@@ -172,6 +197,8 @@ export class Users implements OnInit {
     }
 
     this.feedbackMessage = '';
+    this.modalError = '';
+    this.locationError = '';
     this.modalMode = mode;
     this.userStep = 1;
     this.destroyHomeMap();
@@ -216,17 +243,30 @@ export class Users implements OnInit {
   userNext(): void {
     if (this.userStep === 1) {
       if (!this.selected.name?.trim() || !this.selected.email?.trim()) {
-        alert('El nombre y el correo son obligatorios.');
+        this.modalError = 'El nombre y el correo son obligatorios.';
+        return;
+      }
+      this.selected.email = String(this.selected.email).trim().toLowerCase();
+      const duplicate = this.masterUserList.some(
+        (user) =>
+          Number(user.user_id) !== Number(this.selected.user_id || 0) &&
+          String(user.email || '').trim().toLowerCase() === this.selected.email,
+      );
+      if (duplicate) {
+        this.modalError = 'Este correo electrónico ya está registrado. Utiliza uno diferente.';
         return;
       }
       if (this.modalMode === 'add' && !this.passwordPattern.test(this.selected.password || '')) {
-        alert('La contraseña debe tener mínimo 8 caracteres e incluir letras y números.');
+        this.modalError = 'La contraseña debe tener mínimo 8 caracteres e incluir letras y números.';
         return;
       }
+      this.modalError = '';
       this.userStep = 2;
       setTimeout(() => this.mountHomeMapSafely(), 150);
       return;
     }
+
+    if (!this.validateSelectedLocation()) return;
 
     this.destroyHomeMap();
     this.userStep = 3;
@@ -259,13 +299,7 @@ export class Users implements OnInit {
     this.initHomeMap();
 
     setTimeout(
-      () => {
-        this.homeMap?.invalidateSize();
-
-        if (this.selected.home_lat != null && this.selected.home_lng != null) {
-          this.homeMap?.setView([this.selected.home_lat, this.selected.home_lng], 16);
-        }
-      },
+      () => this.homeMap?.invalidateSize(),
       looksHidden ? 250 : 50,
     );
   }
@@ -280,13 +314,18 @@ export class Users implements OnInit {
       this.homeMarker = null;
     }
 
-    const defaultCenter: L.LatLngExpression = [0.3517, -78.1223]; // Ibarra
-    const startCenter: L.LatLngExpression =
-      this.selected.home_lat != null && this.selected.home_lng != null
-        ? [this.selected.home_lat, this.selected.home_lng]
-        : defaultCenter;
+    const defaultCenter: L.LatLngExpression = [0.3517, -78.1223];
+    const boundary = parseNeighborhoodBoundary(this.locationNeighborhood?.boundary);
+    const hasCoordinates = this.selected.home_lat != null && this.selected.home_lng != null;
+    const coordinatesAllowed =
+      !hasCoordinates ||
+      isPointInsideNeighborhood(
+        Number(this.selected.home_lat),
+        Number(this.selected.home_lng),
+        boundary,
+      );
 
-    this.homeMap = L.map('home-map', { zoomControl: true }).setView(startCenter, 16);
+    this.homeMap = L.map('home-map', { zoomControl: true }).setView(defaultCenter, 16);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -305,22 +344,76 @@ export class Users implements OnInit {
     });
     (L.Marker.prototype as any).options.icon = iconDefault;
 
-    if (this.selected.home_lat != null && this.selected.home_lng != null) {
-      this.homeMarker = L.marker(startCenter).addTo(this.homeMap);
+    if (boundary.length >= 3) {
+      const boundaryLayer = L.polygon(boundary, {
+        color: '#667eea',
+        weight: 3,
+        fillColor: '#667eea',
+        fillOpacity: 0.12,
+      }).addTo(this.homeMap);
+      this.homeMap.fitBounds(boundaryLayer.getBounds(), { padding: [22, 22] });
     }
 
-    this.homeMap.on('click', (e: L.LeafletMouseEvent) => {
-      const { lat, lng } = e.latlng;
+    if (hasCoordinates && coordinatesAllowed) {
+      const selectedLocation: L.LatLngExpression = [
+        Number(this.selected.home_lat),
+        Number(this.selected.home_lng),
+      ];
+      this.homeMarker = L.marker(selectedLocation).addTo(this.homeMap);
+      this.homeMap.setView(selectedLocation, 16);
+      this.locationError = '';
+    } else if (hasCoordinates && !coordinatesAllowed) {
+      this.locationError =
+        `La ubicación registrada está fuera de ${this.locationNeighborhoodName}. ` +
+        'Selecciona un domicilio dentro del área delimitada.';
+    }
 
-      this.selected.home_lat = lat;
-      this.selected.home_lng = lng;
-
-      if (!this.homeMarker) {
-        this.homeMarker = L.marker([lat, lng]).addTo(this.homeMap!);
-      } else {
-        this.homeMarker.setLatLng([lat, lng]);
-      }
+    this.homeMap.on('click', (event: L.LeafletMouseEvent) => {
+      this.setHomeLocation(event.latlng.lat, event.latlng.lng);
     });
+  }
+
+  private setHomeLocation(lat: number, lng: number): boolean {
+    const boundary = this.locationNeighborhood?.boundary;
+    if (!isPointInsideNeighborhood(lat, lng, boundary)) {
+      this.locationError =
+        `La ubicación debe estar dentro de ${this.locationNeighborhoodName}. ` +
+        'El punto seleccionado está fuera del límite del barrio.';
+      return false;
+    }
+
+    this.selected.home_lat = lat;
+    this.selected.home_lng = lng;
+    this.locationError = '';
+
+    if (!this.homeMarker) {
+      this.homeMarker = L.marker([lat, lng]).addTo(this.homeMap!);
+    } else {
+      this.homeMarker.setLatLng([lat, lng]);
+    }
+    return true;
+  }
+
+  private validateSelectedLocation(): boolean {
+    const hasLat = this.selected.home_lat != null && this.selected.home_lat !== '';
+    const hasLng = this.selected.home_lng != null && this.selected.home_lng !== '';
+    if (hasLat !== hasLng) {
+      this.locationError = 'La ubicación está incompleta. Selecciona nuevamente el domicilio en el mapa.';
+      return false;
+    }
+    if (
+      hasLat &&
+      !isPointInsideNeighborhood(
+        Number(this.selected.home_lat),
+        Number(this.selected.home_lng),
+        this.locationNeighborhood?.boundary,
+      )
+    ) {
+      this.locationError = `La ubicación debe estar dentro de ${this.locationNeighborhoodName}.`;
+      return false;
+    }
+    this.locationError = '';
+    return true;
   }
 
   searchAddress() {
@@ -365,21 +458,27 @@ export class Users implements OnInit {
     const lng = parseFloat(r.lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
-    this.selected.home_lat = lat;
-    this.selected.home_lng = lng;
-
-    this.mountHomeMapSafely();
-
+    if (!this.setHomeLocation(lat, lng)) return;
     this.homeMap?.setView([lat, lng], 17);
-
-    if (!this.homeMarker) {
-      this.homeMarker = L.marker([lat, lng]).addTo(this.homeMap!);
-    } else {
-      this.homeMarker.setLatLng([lat, lng]);
-    }
   }
 
   save() {
+    this.selected.email = String(this.selected.email || '').trim().toLowerCase();
+    const duplicate = this.masterUserList.some(
+      (user) =>
+        Number(user.user_id) !== Number(this.selected.user_id || 0) &&
+        String(user.email || '').trim().toLowerCase() === this.selected.email,
+    );
+    if (duplicate) {
+      this.modalError = 'Este correo electrónico ya está registrado. Utiliza uno diferente.';
+      this.userStep = 1;
+      return;
+    }
+    if (!this.validateSelectedLocation()) {
+      this.userStep = 2;
+      setTimeout(() => this.mountHomeMapSafely(), 150);
+      return;
+    }
     const data = { ...this.selected };
 
     if (this.isAdminBarrio) {
@@ -402,7 +501,11 @@ export class Users implements OnInit {
         this.closeModal();
       },
       error: (err) => {
-        this.feedbackMessage = err.error?.message || 'No se pudo guardar el usuario.';
+        this.modalError =
+          err.status === 409
+            ? 'Este correo electrónico ya está registrado. Utiliza uno diferente.'
+            : err.error?.message || err.error?.error || 'No se pudo guardar el usuario.';
+        if (err.status === 409) this.userStep = 1;
       },
     });
   }
@@ -425,6 +528,8 @@ export class Users implements OnInit {
     this.destroyHomeMap();
     this.geoResults = [];
     this.geoLoading = false;
+    this.modalError = '';
+    this.locationError = '';
     this.userStep = 1;
   }
 }

@@ -66,4 +66,34 @@ describe('Neighborhoods', () => {
 
     expect(Number(component.editStep)).toBe(3);
     expect((component as any).destroyBoundaryMap).toHaveBeenCalled();
-  });});
+  });
+
+  it('selecciona un representante mediante su clave estable', () => {
+    component.admins = [
+      { user_id: 7, name: 'Representante', email: 'representante@test.local', neighborhood_id: null },
+    ];
+
+    component.selectRepresentative('admin:7');
+
+    expect(component.wizardRepresentativeKey).toBe('admin:7');
+    expect(component.selectedRepresentative?.user_id).toBe(7);
+  });
+
+  it('muestra un mensaje antes de agregar un correo duplicado al asistente', () => {
+    component.assignableUsers = [
+      { user_id: 10, email: 'ana@test.local', role_id: 3 },
+    ];
+    component.currentUserForm = {
+      ...component.emptyUserForm(),
+      name: 'Ana',
+      last_name: 'Prueba',
+      email: 'ANA@test.local',
+      password: 'Clave123',
+    };
+
+    component.confirmUserForm();
+
+    expect(component.wizardUsers.length).toBe(0);
+    expect(component.userFormError).toContain('ya está registrado');
+  });
+});

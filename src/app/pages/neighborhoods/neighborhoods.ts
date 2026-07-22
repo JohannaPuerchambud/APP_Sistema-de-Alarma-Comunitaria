@@ -9,6 +9,10 @@ import { environment } from '../../../environments/environment';
 import * as L from 'leaflet';
 import { MapViewerComponent } from '../map-viewer/map-viewer';
 import { AuthService } from '../../core/auth/auth.service';
+import {
+  isPointInsideNeighborhood,
+  parseNeighborhoodBoundary,
+} from '../../core/utils/neighborhood-boundary';
 
 declare var bootstrap: any;
 
@@ -110,6 +114,7 @@ export class Neighborhoods implements OnInit {
   public  geoQuery = '';
   public  geoLoading = false;
   public  geoResults: any[] = [];
+  public domicileError = '';
 
   // ── Step 4: Representante search ─────────────────────────────────────────
   public wizardRepresentanteIdx: number | null = null;
@@ -240,7 +245,9 @@ export class Neighborhoods implements OnInit {
     return this.representativeCandidates.find((user) => user.key === this.wizardRepresentativeKey) || null;
   }
 
-  selectRepresentative(candidate: any): void {
+  selectRepresentative(candidateKey: string): void {
+    const candidate = this.representativeCandidates.find((item) => item.key === candidateKey);
+    if (!candidate) return;
     if (this.wizardRepresentativeKey === candidate.key) {
       this.wizardRepresentativeKey = null;
       return;
@@ -386,7 +393,9 @@ export class Neighborhoods implements OnInit {
       this.userSubStep = 'list';
       this.destroyHomeMap();
       this.wizardRepresentanteIdx = null;
-      this.wizardRepresentativeKey = null;
+      if (this.wizardRepresentativeKey && !this.selectedRepresentative) {
+        this.wizardRepresentativeKey = null;
+      }
       this.repSearchText = '';
       this.wizardStep = 4;
       return;
@@ -426,6 +435,7 @@ export class Neighborhoods implements OnInit {
   openUserForm() {
     this.currentUserForm = this.emptyUserForm();
     this.userFormError = '';
+    this.domicileError = '';
     this.showWizardPassword = false;
     this.userSubStep = 'form';
   }
@@ -436,7 +446,18 @@ export class Neighborhoods implements OnInit {
     const u = this.currentUserForm;
     if (!u.name.trim())       { this.userFormError = 'El nombre es obligatorio.'; return; }
     if (!u.last_name.trim())  { this.userFormError = 'El apellido es obligatorio.'; return; }
-    if (!u.email.trim())      { this.userFormError = 'El email es obligatorio.'; return; }
+    if (!u.email.trim())      { this.userFormError = 'El correo electrónico es obligatorio.'; return; }
+    u.email = u.email.trim().toLowerCase();
+    const duplicateExisting = this.assignableUsers.some(
+      (user) => String(user.email || '').trim().toLowerCase() === u.email,
+    );
+    const duplicatePending = this.wizardUsers.some(
+      (user) => String(user.email || '').trim().toLowerCase() === u.email,
+    );
+    if (duplicateExisting || duplicatePending) {
+      this.userFormError = 'Este correo electrónico ya está registrado o fue agregado al asistente.';
+      return;
+    }
     if (!this.passwordPattern.test(u.password)) {
       this.userFormError = 'La contraseña debe tener mínimo 8 caracteres, con letras y números.'; return;
     }
@@ -445,6 +466,7 @@ export class Neighborhoods implements OnInit {
     this.geoQuery = u.address || '';
     this.geoResults = [];
     this.userFormError = '';
+    this.domicileError = '';
     this.userSubStep = 'domicile';
     setTimeout(() => this.initHomeMap(), 200);
   }
@@ -465,41 +487,101 @@ export class Neighborhoods implements OnInit {
   // WIZARD STEP 3 — DOMICILE SUB-STEP
   // ════════════════════════════════════════════════════════════════════════
 
+  get hasWizardBoundary(): boolean {
+    return parseNeighborhoodBoundary(this.wizardData.boundary).length >= 3;
+  }
+
   get currentDomicilioUser(): WizardUser | null {
     return this.wizardUsers[this.domicilioUserIndex] ?? null;
   }
 
   skipDomicile() {
+    this.domicileError = '';
     this.destroyHomeMap();
     this.userSubStep = 'list';
   }
 
   confirmDomicile() {
+    if (!this.validateWizardDomicile()) return;
+    this.domicileError = '';
     this.destroyHomeMap();
     this.userSubStep = 'list';
   }
 
   private initHomeMap() {
     this.destroyHomeMap();
-    const u = this.currentDomicilioUser;
-    if (!u) return;
+    const user = this.currentDomicilioUser;
+    if (!user) return;
     const mapDiv = document.getElementById('wizard-home-map');
     if (!mapDiv) return;
 
-    const center: L.LatLngExpression = (u.home_lat != null && u.home_lng != null)
-      ? [u.home_lat, u.home_lng] : [0.3517, -78.1223];
+    const defaultCenter: L.LatLngExpression = [0.3517, -78.1223];
+    const boundary = parseNeighborhoodBoundary(this.wizardData.boundary);
+    const hasCoordinates = user.home_lat != null && user.home_lng != null;
+    const coordinatesAllowed =
+      !hasCoordinates ||
+      isPointInsideNeighborhood(Number(user.home_lat), Number(user.home_lng), boundary);
 
-    this.homeMap = L.map('wizard-home-map').setView(center, 16);
+    this.homeMap = L.map('wizard-home-map').setView(defaultCenter, 16);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(this.homeMap);
 
-    if (u.home_lat != null && u.home_lng != null)
-      this.homeMarker = L.marker([u.home_lat, u.home_lng]).addTo(this.homeMap);
+    if (boundary.length >= 3) {
+      const boundaryLayer = L.polygon(boundary, {
+        color: '#667eea',
+        weight: 3,
+        fillColor: '#667eea',
+        fillOpacity: 0.12,
+      }).addTo(this.homeMap);
+      this.homeMap.fitBounds(boundaryLayer.getBounds(), { padding: [22, 22] });
+    }
 
-    this.homeMap.on('click', (e: L.LeafletMouseEvent) => {
-      u.home_lat = e.latlng.lat; u.home_lng = e.latlng.lng;
-      if (!this.homeMarker) this.homeMarker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(this.homeMap!);
-      else this.homeMarker.setLatLng([e.latlng.lat, e.latlng.lng]);
+    if (hasCoordinates && coordinatesAllowed) {
+      this.homeMarker = L.marker([Number(user.home_lat), Number(user.home_lng)]).addTo(this.homeMap);
+      this.homeMap.setView([Number(user.home_lat), Number(user.home_lng)], 16);
+      this.domicileError = '';
+    }
+
+    this.homeMap.on('click', (event: L.LeafletMouseEvent) => {
+      this.setWizardHomeLocation(event.latlng.lat, event.latlng.lng);
     });
+  }
+
+  private setWizardHomeLocation(lat: number, lng: number): boolean {
+    if (!isPointInsideNeighborhood(lat, lng, this.wizardData.boundary)) {
+      this.domicileError =
+        `La ubicación debe estar dentro de ${this.wizardData.name || 'el barrio nuevo'}. ` +
+        'El punto seleccionado está fuera del límite dibujado.';
+      return false;
+    }
+
+    const user = this.currentDomicilioUser;
+    if (!user) return false;
+    user.home_lat = lat;
+    user.home_lng = lng;
+    this.domicileError = '';
+    if (!this.homeMarker) this.homeMarker = L.marker([lat, lng]).addTo(this.homeMap!);
+    else this.homeMarker.setLatLng([lat, lng]);
+    return true;
+  }
+
+  private validateWizardDomicile(): boolean {
+    const user = this.currentDomicilioUser;
+    if (!user) return true;
+    const hasLat = user.home_lat != null;
+    const hasLng = user.home_lng != null;
+    if (hasLat !== hasLng) {
+      this.domicileError = 'La ubicación está incompleta. Selecciona nuevamente el domicilio.';
+      return false;
+    }
+    if (
+      hasLat &&
+      !isPointInsideNeighborhood(Number(user.home_lat), Number(user.home_lng), this.wizardData.boundary)
+    ) {
+      this.domicileError = `La ubicación debe estar dentro de ${this.wizardData.name || 'el barrio nuevo'}.`;
+      return false;
+    }
+    this.domicileError = '';
+    return true;
   }
 
   searchAddress() {
@@ -523,12 +605,11 @@ export class Neighborhoods implements OnInit {
   }
 
   private applyGeocode(r: any) {
-    const lat = parseFloat(r.lat), lng = parseFloat(r.lon);
+    const lat = parseFloat(r.lat);
+    const lng = parseFloat(r.lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    const u = this.currentDomicilioUser; if (!u) return;
-    u.home_lat = lat; u.home_lng = lng;
-    this.destroyHomeMap();
-    setTimeout(() => { this.initHomeMap(); this.homeMap?.setView([lat, lng], 17); }, 100);
+    if (!this.setWizardHomeLocation(lat, lng)) return;
+    this.homeMap?.setView([lat, lng], 17);
   }
 
   private destroyHomeMap() {
@@ -541,6 +622,34 @@ export class Neighborhoods implements OnInit {
   // ════════════════════════════════════════════════════════════════════════
 
   wizardSave() {
+    const boundary = parseNeighborhoodBoundary(this.wizardData.boundary);
+    if (boundary.length >= 3) {
+      const selectedExisting = this.assignableUsers.filter((user) =>
+        this.selectedExistingUserIds.has(Number(user.user_id)),
+      );
+      const selectedAdmin = this.selectedRepresentative?.source === 'admin'
+        ? [this.selectedRepresentative]
+        : [];
+      const invalidLocation = [...selectedExisting, ...selectedAdmin].find((user) => {
+        const hasLat = user.home_lat != null && user.home_lat !== '';
+        const hasLng = user.home_lng != null && user.home_lng !== '';
+        return (
+          hasLat !== hasLng ||
+          (hasLat &&
+            !isPointInsideNeighborhood(Number(user.home_lat), Number(user.home_lng), boundary))
+        );
+      });
+      if (invalidLocation) {
+        const userName = `${invalidLocation.name || ''} ${invalidLocation.last_name || ''}`.trim();
+        alert(
+          `El domicilio de ${userName || 'la persona seleccionada'} debe estar dentro de ${this.wizardData.name}. ` +
+          'Corrige primero su ubicación antes de crear el barrio.',
+        );
+        this.wizardStep = 3;
+        return;
+      }
+    }
+
     this.wizardLoading = true;
     this.service.create(this.wizardData).subscribe({
       next: (saved: any) => {
