@@ -87,13 +87,12 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
   private mapContainerElement?: HTMLElement;
   private mapRenderTimer?: ReturnType<typeof setTimeout>;
   private mapResizeObserver?: ResizeObserver;
-  private pendingMapTargetId = 0;
 
   @ViewChild('mapContainer')
   set mapContainer(ref: ElementRef<HTMLElement> | undefined) {
     this.mapContainerElement = ref?.nativeElement;
     if (ref && !this.loading) {
-      this.scheduleMapRender(this.pendingMapTargetId || this.selectedNeighborhoodId);
+      this.scheduleMapRender();
     }
   }
 
@@ -159,22 +158,20 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
       this.mapResizeObserver.observe(container);
     }
     return true;
-
   }
 
-  private scheduleMapRender(targetId: number): void {
+  private scheduleMapRender(): void {
     if (this.managementOnly) return;
-    this.pendingMapTargetId = targetId;
     if (this.mapRenderTimer) clearTimeout(this.mapRenderTimer);
     this.mapRenderTimer = setTimeout(() => {
       this.mapRenderTimer = undefined;
       if (!this.ensureMap()) return;
       this.drawAllNeighborhoods();
       this.map?.invalidateSize({ animate: false });
-      this.selectNeighborhood(this.pendingMapTargetId);
+      this.selectNeighborhood(this.selectedNeighborhoodId);
       setTimeout(() => {
         this.map?.invalidateSize({ animate: false });
-        if (!this.pendingMapTargetId) this.fitAllNeighborhoods();
+        if (!this.selectedNeighborhoodId) this.fitAllNeighborhoods();
       });
     });
   }
@@ -200,9 +197,8 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
           this.errorMessage =
             'Tu cuenta de representante todavía no tiene un barrio asignado. Contacta al administrador general.';
         }
-        this.pendingMapTargetId = targetId;
         this.selectNeighborhood(targetId);
-        this.scheduleMapRender(targetId);
+        this.scheduleMapRender();
       },
       error: () => {
         this.errorMessage = 'No se pudo cargar el panel del barrio.';
@@ -216,6 +212,7 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   selectNeighborhood(id: number): void {
+    id = Number(id || 0);
     if (this.isAdminBarrio) {
       id = this.assignedNeighborhoodId;
     }
@@ -292,7 +289,7 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
 
   setTab(tab: 'summary' | 'residents' | 'reports'): void {
     this.activeTab = tab;
-    if (tab === 'summary') this.scheduleMapRender(this.selectedNeighborhoodId);
+    if (tab === 'summary') this.scheduleMapRender();
   }
 
   get filteredResidents(): any[] {
