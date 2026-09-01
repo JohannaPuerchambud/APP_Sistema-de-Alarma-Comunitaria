@@ -129,7 +129,7 @@
               <input class="form-control" [(ngModel)]="wizardData.description" name="wiz_desc" placeholder="Sector norte...">
             </div>
             <div class="col-md-6 mb-3">
-              <label class="form-label">Número Chip Alarma <small class="text-muted">(Twilio)</small></label>
+              <label class="form-label">Número Chip Alarma <small class="text-muted">(Infobip)</small></label>
               <input class="form-control" [(ngModel)]="wizardData.alarm_number" name="wiz_alarm" placeholder="+593961662731">
             </div>
             <div class="col-md-6 mb-3">
@@ -475,7 +475,7 @@
             <div class="row">
               <div class="col-md-6 mb-3"><label class="form-label">Nombre del barrio <span class="text-danger">*</span></label><input class="form-control" [(ngModel)]="selected.name" name="name" required /></div>
               <div class="col-md-6 mb-3"><label class="form-label">Descripción</label><input class="form-control" [(ngModel)]="selected.description" name="description" /></div>
-              <div class="col-md-6 mb-3"><label class="form-label">Número Chip Alarma <small class="text-muted">(Twilio)</small></label><input class="form-control" [(ngModel)]="selected.alarm_number" name="alarm_number" placeholder="+593961662731" /></div>
+              <div class="col-md-6 mb-3"><label class="form-label">Número Chip Alarma <small class="text-muted">(Infobip)</small></label><input class="form-control" [(ngModel)]="selected.alarm_number" name="alarm_number" placeholder="+593961662731" /></div>
               <div class="col-md-6 mb-3"><label class="form-label">UPC Asignada</label><select class="form-select" [(ngModel)]="selected.upc_id" name="upc_id"><option value="">-- Sin UPC --</option><option *ngFor="let u of upcs" [value]="u.upc_id">{{ u.name }}</option></select></div>
               <div class="col-12 mb-3">
                 <label class="form-label"><i class="bi bi-person-badge text-success me-2"></i>Representante del Barrio</label>
