@@ -3,25 +3,25 @@
 @import 'ag-grid-community/styles/ag-theme-quartz.css';
 /* Si usas dark: @import "ag-grid-community/styles/ag-theme-quartz-dark.css"; */
 
-/* Sistema visual compartido */
+/* Sistema visual compartido - Command Center Tech */
 :root {
-  --color-primary: #667eea;
-  --color-primary-dark: #764ba2;
-  --color-primary-hover: #5568d3;
-  --color-success: #28a745;
-  --color-danger: #dc3545;
-  --color-warning: #d99000;
-  --color-text: #26354d;
-  --color-text-soft: #56647a;
-  --color-muted: #718096;
+  --color-primary: #2563eb;
+  --color-primary-dark: #0f172a;
+  --color-primary-hover: #1d4ed8;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+  --color-text: #0f172a;
+  --color-text-soft: #475569;
+  --color-muted: #64748b;
   --color-surface: #ffffff;
-  --color-surface-soft: #f7f8fc;
-  --color-background: #f5f7fa;
-  --color-border: #e5e9f2;
-  --color-border-strong: #d8deea;
-  --gradient-primary: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-  --shadow-panel: 0 8px 28px rgba(43, 55, 85, 0.07);
-  --shadow-action: 0 4px 12px rgba(102, 126, 234, 0.24);
+  --color-surface-soft: #f8fafc;
+  --color-background: #f1f5f9;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --gradient-primary: linear-gradient(135deg, #2563eb, #1e40af);
+  --shadow-panel: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  --shadow-action: 0 4px 14px rgba(37, 99, 235, 0.28);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -31,7 +31,7 @@
   --space-4: 16px;
   --space-5: 24px;
   --space-6: 32px;
-  font-family: 'Segoe UI', Inter, Roboto, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--color-text);
   background: var(--color-background);
 }
