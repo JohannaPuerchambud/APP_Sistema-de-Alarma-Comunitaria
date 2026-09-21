@@ -1,249 +1,510 @@
-/* Scope total para no afectar otras pantallas */
+/* Reset específico de la pantalla de login */
 .login-page * {
   box-sizing: border-box;
 }
 
 .login-page {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #ffffff;
-  min-height: calc(100vh - 0px);
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #0b1120;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(15, 23, 42, 0.8) 0px, transparent 50%),
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 24px;
   position: relative;
   overflow: hidden;
-  padding: 24px;
 }
 
-.login-page::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23667eea" fill-opacity="0.08" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,144C960,149,1056,139,1152,122.7C1248,107,1344,85,1392,74.7L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>')
-    bottom / cover no-repeat;
-  pointer-events: none;
-}
-
+/* Contenedor tipo Modal/Split Card SaaS */
 .login-container {
-  background: #fff;
+  background: #ffffff;
   border-radius: 20px;
-  box-shadow: 0 15px 50px rgba(102, 126, 234, 0.2);
-  overflow: hidden;
-  width: 90%;
-  max-width: 900px;
+  box-shadow: 
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 25px 60px -15px rgba(0, 0, 0, 0.5),
+    0 0 80px -10px rgba(37, 99, 235, 0.2);
+  width: 100%;
+  max-width: 1060px;
+  min-height: 620px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.15fr 1fr;
+  overflow: hidden;
   position: relative;
   z-index: 1;
-  animation: login-slideUp 0.6s ease-out;
-
-  border: 1px solid transparent; /* Grosor del borde */
-  background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  background-origin: border-box;
-  background-clip: padding-box, border-box;
+  animation: loginAppear 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes login-slideUp {
+@keyframes loginAppear {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(20px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
-/* Izquierda */
+/* =========================================================
+   PANEL IZQUIERDO (Command Center & Security Brand)
+   ========================================================= */
 .left-panel {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  padding: 50px 40px;
-  color: #fff;
+  background: linear-gradient(165deg, #0f172a 0%, #020617 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 52px 48px;
+  color: #f8fafc;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
+  justify-content: space-between;
   position: relative;
+  overflow: hidden;
 }
-.left-panel::before,
-.left-panel::after {
+
+/* Patrón técnico de grilla sutil en el panel oscuro */
+.left-panel::before {
   content: '';
   position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-}
-.left-panel::before {
-  width: 200px;
-  height: 200px;
-  top: -50px;
-  right: -50px;
-}
-.left-panel::after {
-  width: 150px;
-  height: 150px;
-  bottom: -30px;
-  left: -30px;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.7;
+  pointer-events: none;
 }
 
-.shield-icon {
-  width: 100px;
-  height: 100px;
-  margin-bottom: 25px;
-  position: relative;
-  z-index: 1;
+.glow-orb {
+  position: absolute;
+  top: -120px;
+  left: -80px;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, rgba(37, 99, 235, 0) 70%);
+  pointer-events: none;
+  filter: blur(40px);
 }
-.left-panel h1 {
-  font-size: 28px;
+
+/* Badge de estado superior */
+.brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  font-size: 0.68rem;
   font-weight: 700;
-  margin-bottom: 15px;
-  position: relative;
-  z-index: 1;
-}
-.left-panel p {
-  font-size: 16px;
-  line-height: 1.6;
-  opacity: 0.95;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  width: fit-content;
+  margin: 0 auto;
   position: relative;
   z-index: 1;
 }
 
-.features {
-  margin-top: 30px;
-  text-align: left;
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 10px #10b981;
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* Hero central de marca - Centrado */
+.brand-hero {
   position: relative;
   z-index: 1;
+  margin: 24px 0 20px;
 }
-.feature-item {
+
+.brand-hero.centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.brand-icon-wrapper.original-shield {
+  width: 82px;
+  height: 82px;
+  border-radius: 20px;
+  background: radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.35), rgba(15, 23, 42, 0.8));
+  border: 1px solid rgba(255, 255, 255, 0.15);
   display: flex;
   align-items: center;
-  margin-bottom: 15px;
-  font-size: 14px;
+  justify-content: center;
+  box-shadow: 0 12px 30px -5px rgba(37, 99, 235, 0.4);
+  margin-bottom: 16px;
 }
-.feature-item svg {
-  width: 20px;
-  height: 20px;
-  margin-right: 10px;
+
+.original-shield-svg {
+  width: 50px;
+  height: 50px;
+}
+
+.brand-hero h1 {
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #ffffff;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+.brand-tagline {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #94a3b8;
+  margin: 0 auto;
+  max-width: 380px;
+  text-align: center;
+}
+
+/* Cards informativas / características estilo SaaS */
+.tech-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+  margin-bottom: 24px;
+}
+
+.tech-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 14px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  transition: all 0.25s ease;
+}
+
+.tech-card:hover {
+  background: rgba(30, 41, 59, 0.65);
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateX(3px);
+}
+
+.tech-card-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
   flex-shrink: 0;
 }
 
-/* Derecha */
+.tech-card-icon.red {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.tech-card-icon.blue {
+  background: rgba(37, 99, 235, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(37, 99, 235, 0.25);
+}
+
+.tech-card-icon.emerald {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.tech-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tech-card-content strong {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.tech-card-content span {
+  font-size: 0.76rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.left-panel-footer {
+  position: relative;
+  z-index: 1;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.system-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  color: #64748b;
+}
+
+.system-status i {
+  color: #10b981;
+}
+
+/* =========================================================
+   PANEL DERECHO (Formulario de Acceso)
+   ========================================================= */
 .right-panel {
-  padding: 50px 40px;
+  background: #ffffff;
+  padding: 56px 52px;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
-.login-header {
-  text-align: center;
-  margin-bottom: 35px;
-}
-.login-header h2 {
-  color: #333;
-  font-size: 28px;
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-.login-header p {
-  color: #666;
-  font-size: 14px;
+
+.login-form-container {
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
 }
 
-/* Form */
-.form-group {
-  margin-bottom: 22px;
+.login-header {
+  margin-bottom: 32px;
 }
+
+.login-header.centered {
+  text-align: center;
+}
+
+.login-header h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.login-header p {
+  font-size: 0.88rem;
+  color: #64748b;
+  margin: 0 auto;
+  line-height: 1.5;
+  max-width: 320px;
+}
+
+/* Campos de Formulario */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 7px;
+}
+
 .form-label {
   display: block;
-  color: #555;
-  font-size: 14px;
+  font-size: 0.82rem;
   font-weight: 600;
-  margin-bottom: 8px;
+  color: #1e293b;
+  margin-bottom: 7px;
 }
 
 .input-wrapper {
   position: relative;
+  display: flex;
+  align-items: center;
 }
+
 .input-icon {
   position: absolute;
-  left: 15px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: #999;
-  width: 20px;
-  height: 20px;
+  font-size: 1.05rem;
+  color: #94a3b8;
   pointer-events: none;
+  transition: color 0.2s ease;
 }
 
 .form-control {
   width: 100%;
-  padding: 14px 15px 14px 45px;
-  border: 2px solid #e0e0e0;
+  padding: 12px 14px 12px 42px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #0f172a;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
-  font-size: 15px;
-  transition: all 0.3s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
 }
-.form-control:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+
+.form-control::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
 }
 
-/* Botón */
-.btn-login {
-  width: 100%;
-  padding: 15px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: #fff;
+.form-control:hover {
+  border-color: #cbd5e1;
+  background-color: #ffffff;
+}
+
+.form-control:focus {
+  border-color: #2563eb;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.input-wrapper:focus-within .input-icon {
+  color: #2563eb;
+}
+
+/* Botón toggle password */
+.btn-toggle-password {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
   border: none;
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.btn-toggle-password:hover {
+  color: #334155;
+  background: #f1f5f9;
+}
+
+/* Banner de Error estilo alerta moderna */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
   border-radius: 10px;
-  font-size: 16px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin-bottom: 20px;
+  animation: shake 0.3s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* Botón Submit SaaS */
+.btn-submit {
+  width: 100%;
+  padding: 12px 18px;
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border: 1px solid #1d4ed8;
+  border-radius: 10px;
+  font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 10px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  margin-top: 8px;
 }
-.btn-login:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+
+.btn-submit:hover:not(:disabled) {
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
 }
-.btn-login:disabled {
-  opacity: 0.6;
+
+.btn-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-submit:disabled {
+  opacity: 0.55;
   cursor: not-allowed;
+  transform: none;
 }
 
-/* Footer */
-.footer-text {
-  text-align: center;
-  margin-top: 25px;
-  color: #666;
-  font-size: 13px;
-}
-.footer-text a {
-  color: var(--color-primary);
-  text-decoration: none;
-  font-weight: 600;
-}
-.footer-text a:hover {
-  text-decoration: underline;
+.btn-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+.btn-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Mensaje inferior informativo */
+.form-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 12px;
+  border-radius: 10px;
+  background-color: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  color: #64748b;
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.form-notice i {
+  font-size: 0.85rem;
+  color: #2563eb;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Responsividad */
+@media (max-width: 900px) {
   .login-container {
     grid-template-columns: 1fr;
-    max-width: 450px;
+    max-width: 480px;
+    min-height: auto;
   }
+
   .left-panel {
-    padding: 40px 30px;
+    display: none; /* En móvil se enfoca directamente en el login rápido */
   }
-  .left-panel h1 {
-    font-size: 24px;
-  }
-  .features {
-    display: none;
-  }
+
   .right-panel {
-    padding: 40px 30px;
+    padding: 40px 28px;
   }
 }
