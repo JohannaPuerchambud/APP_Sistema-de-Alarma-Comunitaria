@@ -11,4 +11,8 @@ export class ReportService {
   getAll(): Observable<any[]> {
     return this.http.get<any[]>(this.apiUrl);
   }
+
+  getAllActivity(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/activity/all`);
+  }
 }

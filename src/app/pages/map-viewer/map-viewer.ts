@@ -33,6 +33,14 @@ const iconDefault = L.icon({
 });
 L.Marker.prototype.options.icon = iconDefault;
 
+const emergencyIcon = L.divIcon({
+  className: 'emergency-map-marker',
+  html: '<i class="bi bi-megaphone-fill"></i>',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -30],
+});
+
 @Component({
   selector: 'app-map-viewer',
   standalone: true,
@@ -62,6 +70,8 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
   neighborhoodReports: any[] = [];
   representative: any = null;
   activeTab: 'summary' | 'residents' | 'reports' = 'summary';
+  activityTypeFilter: 'all' | 'report' | 'emergency' = 'all';
+  mapMarkerMode: 'residents' | 'emergencies' = 'residents';
 
   residentSearch = '';
   residentsPage = 1;
@@ -80,6 +90,7 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
 
   private allLayers = L.layerGroup();
   private userMarkersLayer = L.layerGroup();
+  private emergencyMarkersLayer = L.layerGroup();
   private layerMap: Record<number, L.Polygon> = {};
   private markerMap = new Map<number, L.Marker>();
   private selectedPolygon: L.Polygon | null = null;
@@ -151,6 +162,7 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     }).addTo(this.map);
     this.allLayers.addTo(this.map);
     this.userMarkersLayer.addTo(this.map);
+    // Emergency layer starts hidden; toggled via setMapMarkerMode
     if (typeof ResizeObserver !== 'undefined') {
       this.mapResizeObserver = new ResizeObserver(() => {
         this.map?.invalidateSize({ animate: false });
@@ -182,7 +194,7 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     forkJoin({
       neighborhoods: this.neighborhoodService.getAll(),
       users: this.userService.getAll(),
-      reports: this.managementOnly ? of([]) : this.reportService.getAll(),
+      reports: this.managementOnly ? of([]) : this.reportService.getAllActivity(),
     }).subscribe({
       next: ({ neighborhoods, users, reports }) => {
         this.neighborhoods = neighborhoods;
@@ -218,6 +230,7 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     }
     this.selectedNeighborhoodId = id;
     this.userMarkersLayer.clearLayers();
+    this.emergencyMarkersLayer.clearLayers();
     this.markerMap.clear();
     this.feedbackMessage = '';
 
@@ -258,8 +271,10 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     this.residentsPage = 1;
     this.reportSearch = '';
     this.reportsPage = 1;
+    this.activityTypeFilter = 'all';
     this.expandedReportKeys.clear();
 
+    // Habitantes
     for (const user of this.neighborhoodUsers) {
       const lat = Number(user.home_lat);
       const lng = Number(user.home_lng);
@@ -273,6 +288,23 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
       marker.addTo(this.userMarkersLayer);
       this.markerMap.set(Number(user.user_id), marker);
     }
+
+    // Emergencias con ubicación
+    const emergencies = this.neighborhoodReports.filter(
+      (r) => r.activity_type === 'emergency' && r.latitude != null && r.longitude != null,
+    );
+    for (const emergency of emergencies) {
+      const lat = Number(emergency.latitude);
+      const lng = Number(emergency.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      const marker = L.marker([lat, lng], { icon: emergencyIcon }).bindPopup(
+        this.createEmergencyPopup(emergency),
+      );
+      marker.addTo(this.emergencyMarkersLayer);
+    }
+
+    // Aplicar modo de capa activo
+    this.applyMapMarkerMode();
 
     const polygon = this.layerMap[id];
     if (polygon) {
@@ -290,6 +322,32 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
   setTab(tab: 'summary' | 'residents' | 'reports'): void {
     this.activeTab = tab;
     if (tab === 'summary') this.scheduleMapRender();
+  }
+
+  setMapMarkerMode(mode: 'residents' | 'emergencies'): void {
+    this.mapMarkerMode = mode;
+    this.applyMapMarkerMode();
+  }
+
+  private applyMapMarkerMode(): void {
+    if (!this.map) return;
+    if (this.mapMarkerMode === 'residents') {
+      if (!this.map.hasLayer(this.userMarkersLayer)) {
+        this.userMarkersLayer.addTo(this.map);
+      }
+      this.map.removeLayer(this.emergencyMarkersLayer);
+    } else {
+      this.map.removeLayer(this.userMarkersLayer);
+      if (!this.map.hasLayer(this.emergencyMarkersLayer)) {
+        this.emergencyMarkersLayer.addTo(this.map);
+      }
+    }
+  }
+
+  get emergenciesWithLocation(): any[] {
+    return this.neighborhoodReports.filter(
+      (r) => r.activity_type === 'emergency' && r.latitude != null && r.longitude != null,
+    );
   }
 
   get filteredResidents(): any[] {
@@ -326,11 +384,13 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
 
   get filteredReports(): any[] {
     const query = this.reportSearch.trim().toLowerCase();
-    const reports = this.neighborhoodReports.filter((report) =>
-      !query || [report.title, report.description, report.name, report.last_name]
+    const reports = this.neighborhoodReports.filter((report) => {
+      const matchesType = this.activityTypeFilter === 'all' || report.activity_type === this.activityTypeFilter;
+      const matchesQuery = !query || [report.title, report.description, report.name, report.last_name]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(query)),
-    );
+        .some((value) => String(value).toLowerCase().includes(query));
+      return matchesType && matchesQuery;
+    });
     const direction = this.reportSort === 'newest' ? -1 : 1;
     return [...reports].sort((left, right) =>
       direction * (new Date(left.created_at).getTime() - new Date(right.created_at).getTime()),
@@ -360,7 +420,7 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   reportKey(report: any): string {
-    return String(report.report_id ?? `${report.created_at || ''}:${report.title || ''}`);
+    return String(report.activity_id ?? report.report_id ?? `${report.created_at || ''}:${report.title || ''}`);
   }
 
   isReportExpanded(report: any): boolean {
@@ -374,6 +434,14 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
   }
   get recentReports(): any[] {
     return this.neighborhoodReports.slice(0, 5);
+  }
+
+  get emergencyCount(): number {
+    return this.neighborhoodReports.filter((r) => r.activity_type === 'emergency').length;
+  }
+
+  get reportCount(): number {
+    return this.neighborhoodReports.filter((r) => r.activity_type === 'report').length;
   }
 
   focusResident(user: any): void {
@@ -509,4 +577,26 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     }
     return container;
   }
-}
+
+  private createEmergencyPopup(emergency: any): HTMLElement {
+    const container = document.createElement('div');
+    container.className = 'emergency-popup';
+    const desc = String(emergency.description || 'Emergencia reportada').replace(/</g, '&lt;');
+    const reporterName = `${String(emergency.name || '').replace(/</g, '&lt;')} ${String(emergency.last_name || '').replace(/</g, '&lt;')}`.trim();
+    const addressHtml = emergency.address
+      ? `<div style="font-size:11px;color:#7a879c;margin-top:2px"><i class="bi bi-geo-alt-fill" style="color:#e67e22"></i> ${String(emergency.address).replace(/</g, '&lt;')}</div>`
+      : '';
+    const dateStr = new Date(emergency.created_at).toLocaleString('es-EC');
+    container.innerHTML = [
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">',
+      '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:#fde8e8;color:#c0392b;font-size:11px"><i class="bi bi-megaphone-fill"></i></span>',
+      '<strong style="color:#c0392b;font-size:13px">Emergencia</strong>',
+      '</div>',
+      `<div style="font-size:12px;color:#333;margin-bottom:3px"><strong>${desc}</strong></div>`,
+      `<div style="font-size:11px;color:#7a879c">${reporterName}</div>`,
+      addressHtml,
+      `<div style="font-size:10px;color:#aab3c3;margin-top:3px">${dateStr}</div>`,
+    ].join('');
+    return container;
+  }
+}
