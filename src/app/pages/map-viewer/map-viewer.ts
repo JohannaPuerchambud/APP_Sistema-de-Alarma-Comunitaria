@@ -240,11 +240,26 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     if (!id) {
-      this.activeTab = 'summary';
-      this.selectedNeighborhoodInfo = null;
-      this.neighborhoodUsers = [];
-      this.neighborhoodReports = [];
+      if (this.embedded) {
+        this.selectedNeighborhoodInfo = null;
+        this.neighborhoodUsers = [];
+        this.neighborhoodReports = [];
+        this.representative = null;
+        return;
+      }
+
+      this.selectedNeighborhoodInfo = {
+        neighborhood_id: 0,
+        name: 'Todos los barrios',
+        description: 'Supervisión consolidada de todos los cuadrantes y sectores.',
+      };
+      this.neighborhoodUsers = [...this.allUsers];
+      this.neighborhoodReports = [...this.allReports];
       this.representative = null;
+      this.resetSearchFilters();
+
+      this.populateMarkers();
+      this.applyMapMarkerMode();
       this.fitAllNeighborhoods();
       setTimeout(() => this.map?.invalidateSize(), 100);
       return;
@@ -267,13 +282,34 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     this.representative = this.neighborhoodUsers.find(
       (user) => Number(user.role_id) === 2,
     );
+    this.resetSearchFilters();
+
+    this.populateMarkers();
+    this.applyMapMarkerMode();
+
+    const polygon = this.layerMap[id];
+    if (polygon) {
+      polygon.setStyle(this.highlightStyle);
+      polygon.bringToFront();
+      this.selectedPolygon = polygon;
+      this.map?.fitBounds(polygon.getBounds(), { padding: [24, 24] });
+    } else if (this.markerMap.size > 0) {
+      const group = L.featureGroup([...this.markerMap.values()]);
+      this.map?.fitBounds(group.getBounds(), { padding: [24, 24], maxZoom: 17 });
+    }
+    setTimeout(() => this.map?.invalidateSize(), 150);
+  }
+
+  private resetSearchFilters(): void {
     this.residentSearch = '';
     this.residentsPage = 1;
     this.reportSearch = '';
     this.reportsPage = 1;
     this.activityTypeFilter = 'all';
     this.expandedReportKeys.clear();
+  }
 
+  private populateMarkers(): void {
     // Habitantes
     for (const user of this.neighborhoodUsers) {
       const lat = Number(user.home_lat);
@@ -302,21 +338,14 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
       );
       marker.addTo(this.emergencyMarkersLayer);
     }
+  }
 
-    // Aplicar modo de capa activo
-    this.applyMapMarkerMode();
-
-    const polygon = this.layerMap[id];
-    if (polygon) {
-      polygon.setStyle(this.highlightStyle);
-      polygon.bringToFront();
-      this.selectedPolygon = polygon;
-      this.map?.fitBounds(polygon.getBounds(), { padding: [24, 24] });
-    } else if (this.markerMap.size > 0) {
-      const group = L.featureGroup([...this.markerMap.values()]);
-      this.map?.fitBounds(group.getBounds(), { padding: [24, 24], maxZoom: 17 });
-    }
-    setTimeout(() => this.map?.invalidateSize(), 150);
+  getNeighborhoodName(neighborhoodId: number | null | undefined): string {
+    if (!neighborhoodId) return '';
+    const found = this.neighborhoods.find(
+      (n) => Number(n.neighborhood_id) === Number(neighborhoodId),
+    );
+    return found ? found.name : '';
   }
 
   setTab(tab: 'summary' | 'residents' | 'reports'): void {
@@ -353,11 +382,26 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
   get filteredResidents(): any[] {
     const query = this.residentSearch.trim().toLowerCase();
     if (!query) return this.neighborhoodUsers;
-    return this.neighborhoodUsers.filter((user) =>
-      [user.name, user.last_name, user.email, user.phone]
+    const tokens = query.split(/\s+/).filter(Boolean);
+    return this.neighborhoodUsers.filter((user) => {
+      const corpus = [
+        user.name,
+        user.last_name,
+        `${user.name || ''} ${user.last_name || ''}`,
+        user.email,
+        user.phone,
+        user.cedula,
+        user.address,
+        user.user_id ? `#${user.user_id}` : '',
+        user.user_id ? String(user.user_id) : '',
+        user.neighborhood_name,
+        Number(user.role_id) === 2 ? 'representante' : 'habitante',
+      ]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(query)),
-    );
+        .join(' ')
+        .toLowerCase();
+      return tokens.every((token) => corpus.includes(token));
+    });
   }
 
   get paginatedResidents(): any[] {
@@ -384,17 +428,37 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
 
   get filteredReports(): any[] {
     const query = this.reportSearch.trim().toLowerCase();
+    const tokens = query ? query.split(/\s+/).filter(Boolean) : [];
     const reports = this.neighborhoodReports.filter((report) => {
-      const matchesType = this.activityTypeFilter === 'all' || report.activity_type === this.activityTypeFilter;
-      const matchesQuery = !query || [report.title, report.description, report.name, report.last_name]
+      const matchesType =
+        this.activityTypeFilter === 'all' || report.activity_type === this.activityTypeFilter;
+      if (!matchesType) return false;
+      if (!tokens.length) return true;
+
+      const nName = this.getNeighborhoodName(report.neighborhood_id);
+      const corpus = [
+        report.title,
+        report.description,
+        report.name,
+        report.last_name,
+        `${report.name || ''} ${report.last_name || ''}`,
+        report.address,
+        report.activity_type === 'emergency' ? 'emergencia' : 'reporte',
+        nName,
+      ]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(query));
-      return matchesType && matchesQuery;
+        .join(' ')
+        .toLowerCase();
+
+      return tokens.every((token) => corpus.includes(token));
     });
+
     const direction = this.reportSort === 'newest' ? -1 : 1;
-    return [...reports].sort((left, right) =>
-      direction * (new Date(left.created_at).getTime() - new Date(right.created_at).getTime()),
-    );
+    return [...reports].sort((left, right) => {
+      const tLeft = left.created_at ? new Date(left.created_at).getTime() : 0;
+      const tRight = right.created_at ? new Date(right.created_at).getTime() : 0;
+      return direction * (tLeft - tRight);
+    });
   }
 
   get paginatedReports(): any[] {
