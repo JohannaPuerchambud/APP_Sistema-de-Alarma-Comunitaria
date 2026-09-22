@@ -60,9 +60,9 @@
           <div class="search-field"><i class="bi bi-search"></i><input class="form-control" placeholder="Buscar habitante por nombre o correo" [(ngModel)]="residentSearch" (input)="onResidentSearch()"></div>
           <select class="form-select page-size" [(ngModel)]="residentsPerPage" (change)="onResidentSearch()"><option [ngValue]="10">10 por página</option><option [ngValue]="25">25 por página</option><option [ngValue]="50">50 por página</option></select>
         </div>
-        <div class="responsive-table" *ngIf="paginatedResidents.length; else noManagementResidents">
+        <div class="responsive-table" *ngIf="_paginatedResidents.length; else noManagementResidents">
           <table><thead><tr><th>Habitante</th><th>Correo</th><th>Rol</th><th *ngIf="canManage">Acciones</th></tr></thead>
-            <tbody><tr *ngFor="let user of paginatedResidents">
+            <tbody><tr *ngFor="let user of _paginatedResidents">
               <td data-label="Habitante"><div class="person-cell"><span class="avatar">{{ (user.name || '?')[0] }}</span><div><strong>{{ user.name }} {{ user.last_name || '' }}</strong><small>#{{ user.user_id }}</small></div></div></td>
               <td data-label="Correo"><strong>{{ user.email }}</strong></td>
               <td data-label="Rol"><span class="role-badge" [class.rep]="user.role_id === 2">{{ user.role_id === 2 ? 'Representante' : 'Habitante' }}</span></td>
@@ -71,7 +71,7 @@
           </table>
         </div>
         <ng-template #noManagementResidents><div class="empty-state"><i class="bi bi-houses"></i><h4>No hay habitantes asignados</h4><p>Asigna usuarios existentes o agrégalos durante la creación del barrio.</p></div></ng-template>
-        <div class="pagination-bar" *ngIf="residentsTotalPages > 1"><span>{{ filteredResidents.length }} resultado(s)</span><div><button (click)="changeResidentsPage(residentsPage - 1)" [disabled]="residentsPage === 1">‹</button><button *ngFor="let page of residentPageNumbers" [class.active]="page === residentsPage" (click)="changeResidentsPage(page)">{{ page }}</button><button (click)="changeResidentsPage(residentsPage + 1)" [disabled]="residentsPage === residentsTotalPages">›</button></div></div>
+        <div class="pagination-bar" *ngIf="_residentsTotalPages > 1"><span>{{ _filteredResidents.length }} resultado(s)</span><div><button (click)="changeResidentsPage(residentsPage - 1)" [disabled]="residentsPage === 1">‹</button><button *ngFor="let page of _residentPageNumbers" [class.active]="page === residentsPage" (click)="changeResidentsPage(page)">{{ page }}</button><button (click)="changeResidentsPage(residentsPage + 1)" [disabled]="residentsPage === _residentsTotalPages">›</button></div></div>
       </section>
     </ng-container>
     <div class="empty-state panel" *ngIf="!loading && !selectedNeighborhoodInfo"><i class="bi bi-people"></i><h3>Selecciona un barrio</h3><p>Aquí podrás administrar sus habitantes.</p></div>
@@ -172,7 +172,7 @@
             <option [ngValue]="50">50 por página</option>
           </select>
         </div>
-        <div class="responsive-table" *ngIf="paginatedResidents.length; else noDashboardResidents">
+        <div class="responsive-table" *ngIf="_paginatedResidents.length; else noDashboardResidents">
           <table>
             <thead>
               <tr>
@@ -184,7 +184,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let user of paginatedResidents">
+              <tr *ngFor="let user of _paginatedResidents">
                 <td data-label="Habitante">
                   <div class="person-cell">
                     <span class="avatar">{{ (user.name || '?')[0] }}</span>
@@ -219,12 +219,12 @@
             <p>{{ neighborhoodUsers.length ? 'No encontramos habitantes con los términos de búsqueda ingresados.' : 'No hay habitantes asignados a este barrio.' }}</p>
           </div>
         </ng-template>
-        <div class="pagination-bar" *ngIf="residentsTotalPages > 1">
-          <span>{{ filteredResidents.length }} resultado(s) · Página {{ residentsPage }} de {{ residentsTotalPages }}</span>
+        <div class="pagination-bar" *ngIf="_residentsTotalPages > 1">
+          <span>{{ _filteredResidents.length }} resultado(s) · Página {{ residentsPage }} de {{ _residentsTotalPages }}</span>
           <div>
             <button (click)="changeResidentsPage(residentsPage - 1)" [disabled]="residentsPage === 1">‹</button>
-            <button *ngFor="let page of residentPageNumbers" [class.active]="page === residentsPage" (click)="changeResidentsPage(page)">{{ page }}</button>
-            <button (click)="changeResidentsPage(residentsPage + 1)" [disabled]="residentsPage === residentsTotalPages">›</button>
+            <button *ngFor="let page of _residentPageNumbers" [class.active]="page === residentsPage" (click)="changeResidentsPage(page)">{{ page }}</button>
+            <button (click)="changeResidentsPage(residentsPage + 1)" [disabled]="residentsPage === _residentsTotalPages">›</button>
           </div>
         </div>
       </section>
@@ -259,9 +259,9 @@
           </select>
         </div>
 
-        <div class="report-list" *ngIf="paginatedReports.length; else noDashboardReports">
+        <div class="report-list" *ngIf="_paginatedReports.length; else noDashboardReports">
           <div class="report-list-head" aria-hidden="true"><span></span><span>Tipo</span><span>Detalle</span><span>Reportado por</span><span>Fecha</span><span>Evidencia</span><span></span></div>
-          <article class="report-list-item" *ngFor="let report of paginatedReports" [class.expanded]="isReportExpanded(report)" [class.emergency-row]="report.activity_type === 'emergency'">
+          <article class="report-list-item" *ngFor="let report of _paginatedReports" [class.expanded]="isReportExpanded(report)" [class.emergency-row]="report.activity_type === 'emergency'">
             <div class="report-list-row">
               <span class="report-alert" [class.report-alert-emergency]="report.activity_type === 'emergency'">
                 <i class="bi" [ngClass]="report.activity_type === 'emergency' ? 'bi-megaphone-fill' : 'bi-exclamation-triangle-fill'"></i>
@@ -300,12 +300,12 @@
           </div>
         </ng-template>
 
-        <div class="pagination-bar report-pagination" *ngIf="filteredReports.length > 0">
-          <span>{{ filteredReports.length }} resultado(s) · Página {{ reportsPage }} de {{ reportsTotalPages }}</span>
+        <div class="pagination-bar report-pagination" *ngIf="_filteredReports.length > 0">
+          <span>{{ _filteredReports.length }} resultado(s) · Página {{ reportsPage }} de {{ _reportsTotalPages }}</span>
           <div>
             <button (click)="changeReportsPage(reportsPage - 1)" [disabled]="reportsPage === 1">‹</button>
-            <button *ngFor="let page of reportPageNumbers" [class.active]="page === reportsPage" (click)="changeReportsPage(page)">{{ page }}</button>
-            <button (click)="changeReportsPage(reportsPage + 1)" [disabled]="reportsPage === reportsTotalPages">›</button>
+            <button *ngFor="let page of _reportPageNumbers" [class.active]="page === reportsPage" (click)="changeReportsPage(page)">{{ page }}</button>
+            <button (click)="changeReportsPage(reportsPage + 1)" [disabled]="reportsPage === _reportsTotalPages">›</button>
           </div>
         </div>
       </section>

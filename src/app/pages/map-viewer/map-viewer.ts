@@ -76,12 +76,20 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
   residentSearch = '';
   residentsPage = 1;
   residentsPerPage = 10;
+  _filteredResidents: any[] = [];
+  _paginatedResidents: any[] = [];
+  _residentsTotalPages = 1;
+  _residentPageNumbers: number[] = [1];
 
   reportSearch = '';
   reportsPage = 1;
   reportsPerPage = 10;
   reportSort: 'newest' | 'oldest' = 'newest';
   expandedReportKeys = new Set<string>();
+  _filteredReports: any[] = [];
+  _paginatedReports: any[] = [];
+  _reportsTotalPages = 1;
+  _reportPageNumbers: number[] = [1];
 
   assignmentSearch = '';
   selectedAssignmentIds = new Set<number>();
@@ -307,6 +315,8 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     this.reportsPage = 1;
     this.activityTypeFilter = 'all';
     this.expandedReportKeys.clear();
+    this.applyResidentFilter();
+    this.applyReportFilter();
   }
 
   private populateMarkers(): void {
@@ -379,54 +389,51 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     );
   }
 
-  get filteredResidents(): any[] {
+  applyResidentFilter(): void {
     const query = this.residentSearch.trim().toLowerCase();
-    if (!query) return this.neighborhoodUsers;
-    const tokens = query.split(/\s+/).filter(Boolean);
-    return this.neighborhoodUsers.filter((user) => {
-      const corpus = [
-        user.name,
-        user.last_name,
-        `${user.name || ''} ${user.last_name || ''}`,
-        user.email,
-        user.phone,
-        user.cedula,
-        user.address,
-        user.user_id ? `#${user.user_id}` : '',
-        user.user_id ? String(user.user_id) : '',
-        user.neighborhood_name,
-        Number(user.role_id) === 2 ? 'representante' : 'habitante',
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return tokens.every((token) => corpus.includes(token));
-    });
-  }
-
-  get paginatedResidents(): any[] {
+    if (!query) {
+      this._filteredResidents = this.neighborhoodUsers;
+    } else {
+      const tokens = query.split(/\s+/).filter(Boolean);
+      this._filteredResidents = this.neighborhoodUsers.filter((user) => {
+        const corpus = [
+          user.name,
+          user.last_name,
+          `${user.name || ''} ${user.last_name || ''}`,
+          user.email,
+          user.phone,
+          user.cedula,
+          user.address,
+          user.user_id ? `#${user.user_id}` : '',
+          user.user_id ? String(user.user_id) : '',
+          user.neighborhood_name,
+          Number(user.role_id) === 2 ? 'representante' : 'habitante',
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return tokens.every((token) => corpus.includes(token));
+      });
+    }
+    this._residentsTotalPages = Math.max(1, Math.ceil(this._filteredResidents.length / this.residentsPerPage));
+    if (this.residentsPage > this._residentsTotalPages) this.residentsPage = 1;
+    this._residentPageNumbers = Array.from({ length: this._residentsTotalPages }, (_, i) => i + 1);
     const start = (this.residentsPage - 1) * this.residentsPerPage;
-    return this.filteredResidents.slice(start, start + this.residentsPerPage);
-  }
-
-  get residentsTotalPages(): number {
-    return Math.max(1, Math.ceil(this.filteredResidents.length / this.residentsPerPage));
-  }
-
-  get residentPageNumbers(): number[] {
-    return Array.from({ length: this.residentsTotalPages }, (_, index) => index + 1);
+    this._paginatedResidents = this._filteredResidents.slice(start, start + this.residentsPerPage);
   }
 
   changeResidentsPage(page: number): void {
-    if (page < 1 || page > this.residentsTotalPages) return;
+    if (page < 1 || page > this._residentsTotalPages) return;
     this.residentsPage = page;
+    this.applyResidentFilter();
   }
 
   onResidentSearch(): void {
     this.residentsPage = 1;
+    this.applyResidentFilter();
   }
 
-  get filteredReports(): any[] {
+  applyReportFilter(): void {
     const query = this.reportSearch.trim().toLowerCase();
     const tokens = query ? query.split(/\s+/).filter(Boolean) : [];
     const reports = this.neighborhoodReports.filter((report) => {
@@ -454,33 +461,27 @@ export class MapViewerComponent implements OnInit, OnChanges, OnDestroy {
     });
 
     const direction = this.reportSort === 'newest' ? -1 : 1;
-    return [...reports].sort((left, right) => {
+    this._filteredReports = [...reports].sort((left, right) => {
       const tLeft = left.created_at ? new Date(left.created_at).getTime() : 0;
       const tRight = right.created_at ? new Date(right.created_at).getTime() : 0;
       return direction * (tLeft - tRight);
     });
-  }
-
-  get paginatedReports(): any[] {
+    this._reportsTotalPages = Math.max(1, Math.ceil(this._filteredReports.length / this.reportsPerPage));
+    if (this.reportsPage > this._reportsTotalPages) this.reportsPage = 1;
+    this._reportPageNumbers = Array.from({ length: this._reportsTotalPages }, (_, i) => i + 1);
     const start = (this.reportsPage - 1) * this.reportsPerPage;
-    return this.filteredReports.slice(start, start + this.reportsPerPage);
-  }
-
-  get reportsTotalPages(): number {
-    return Math.max(1, Math.ceil(this.filteredReports.length / this.reportsPerPage));
-  }
-
-  get reportPageNumbers(): number[] {
-    return Array.from({ length: this.reportsTotalPages }, (_, index) => index + 1);
+    this._paginatedReports = this._filteredReports.slice(start, start + this.reportsPerPage);
   }
 
   onReportFiltersChange(): void {
     this.reportsPage = 1;
+    this.applyReportFilter();
   }
 
   changeReportsPage(page: number): void {
-    if (page < 1 || page > this.reportsTotalPages) return;
+    if (page < 1 || page > this._reportsTotalPages) return;
     this.reportsPage = page;
+    this.applyReportFilter();
   }
 
   reportKey(report: any): string {
